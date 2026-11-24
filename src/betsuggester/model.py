@@ -12,14 +12,15 @@ STATS = list(LINE_OFFSETS)
 
 
 class PropModel:
-    def __init__(self):
+    def __init__(self, features=None):
+        self.features = list(features or FEATURES)
         self.reg = HistGradientBoostingRegressor(loss="poisson", max_iter=250, learning_rate=0.05,
                                                  max_depth=4, min_samples_leaf=40, random_state=0)
         self.alpha = 0.1  # extra spread beyond Poisson (negative-binomial dispersion)
 
     def fit(self, df, stat="pts"):
-        self.reg.fit(df[FEATURES], df[stat])
-        mu = self.reg.predict(df[FEATURES])
+        self.reg.fit(df[self.features], df[stat])
+        mu = self.reg.predict(df[self.features])
         # Moment estimate: Var(y) = mu + alpha*mu^2
         self.alpha = max(float(np.sum((df[stat] - mu) ** 2 - mu) / np.sum(mu ** 2)), 0.01)
         return self
@@ -43,7 +44,7 @@ class PropModel:
         return self
 
     def mean(self, df):
-        return self.reg.predict(df[FEATURES])
+        return self.reg.predict(df[self.features])
 
     def p_over(self, mu, line):
         """P(stat > line) for a half-point line like 24.5."""
@@ -53,13 +54,13 @@ class PropModel:
         return stats.nbinom.sf(np.floor(line), n, p)
 
 
-def fit_calibrated(train, stat="pts") -> "PropModel":
+def fit_calibrated(train, stat="pts", features=None) -> "PropModel":
     """Fit on the older 75% of games, tune the spread on the newest 25% (so probabilities aren't
     overconfident), then refit the regressor on everything."""
     cut = train.date.quantile(0.75)
-    m = PropModel().fit(train[train.date < cut], stat)
+    m = PropModel(features).fit(train[train.date < cut], stat)
     m.tune_spread(train[train.date >= cut], stat)
     alpha = m.alpha
-    m.reg.fit(train[FEATURES], train[stat])
+    m.reg.fit(train[m.features], train[stat])
     m.alpha = alpha
     return m

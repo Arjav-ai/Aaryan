@@ -1,7 +1,32 @@
 """Build one row per player-game using ONLY information known before tip-off."""
+import io
+from functools import lru_cache
+
 import pandas as pd
 
 from .db import connect
+
+
+POS_GROUP = {"PG": 0, "SG": 0, "SF": 1, "PF": 1, "C": 2}   # 0 = guards, 1 = forwards, 2 = centres
+POS_SEASONS = (2026, 2027)                                  # oldest first so the newest listing wins
+
+
+@lru_cache(maxsize=1)
+def positions() -> dict:
+    """player name -> position group, from Basketball-Reference season tables (2 cached pages)."""
+    from . import bbr
+    out = {}
+    for season in POS_SEASONS:
+        html = bbr.fetch(f"/leagues/NBA_{season}_per_game.html")
+        if html is None:
+            continue
+        t = pd.read_html(io.StringIO(html), attrs={"id": "per_game_stats"})[0]
+        t = t[t["Player"] != "Player"].drop_duplicates("Player")
+        for name, pos in zip(t["Player"], t["Pos"]):
+            g = POS_GROUP.get(str(pos).split("-")[0])
+            if g is not None:
+                out[name] = g
+    return out
 
 
 def load_player_games() -> pd.DataFrame:
@@ -34,6 +59,12 @@ def add_features(df: pd.DataFrame, stat: str = "pts") -> pd.DataFrame:
     team_game["opp_allowed15"] = team_game.groupby("opp")[stat].transform(
         lambda s: s.shift(1).rolling(15, min_periods=5).mean())
     df = df.merge(team_game[["opp", "game_id", "opp_allowed15"]], on=["opp", "game_id"], how="left")
+    # Defence against this kind of player: what the opponent has allowed to guards / forwards / centres lately.
+    df["pos_code"] = df["player"].map(positions()).fillna(1).astype(int)   # unknown players -> forwards
+    tp = df.groupby(["opp", "pos_code", "date", "game_id"], as_index=False)[stat].sum(min_count=1).sort_values("date")
+    tp["opp_pos_allowed15"] = tp.groupby(["opp", "pos_code"])[stat].transform(
+        lambda s: s.shift(1).rolling(15, min_periods=5).mean())
+    df = df.merge(tp[["opp", "pos_code", "game_id", "opp_pos_allowed15"]], on=["opp", "pos_code", "game_id"], how="left")
     df = add_absence_features(df, stat)
     return df.sort_values(["date", "game_id"]).reset_index(drop=True)
 
@@ -76,7 +107,12 @@ def add_absence_features(df: pd.DataFrame, stat: str) -> pd.DataFrame:
     return df.merge(pd.DataFrame(rows), on=["team", "game_id"], how="left")
 
 
+ALL_FEATURES_NOTE = None
 FEATURES = ["stat_avg5", "stat_avg10", "min_avg5", "min_avg10", "stat_std10", "stat_career_avg",
             "games_prior", "rest_days", "per_min10", "opp_allowed15", "is_home"]
 # Absence numbers (out_min, out_stat, n_out) are computed but NOT used as model inputs: A/B tested over
 # 13,943 player-games and they did not improve accuracy with one season of history. The app shows them as a warning.
+
+
+# Every feature that exists; used so that tests of different feature sets all judge the same games.
+ALL_FEATURES = FEATURES + ["pos_code", "opp_pos_allowed15"]
