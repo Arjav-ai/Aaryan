@@ -11,7 +11,8 @@ Two sections planned:
 - [x] NBA data downloader (Basketball-Reference, cached, rate-limited)
 - [x] Points, rebounds, assists, threes models + back-test (src/betsuggester/backtest.py)
 - [x] Web page for iPhone (Best bets + Most probable, your own line and odds)
-- [ ] Football, American football, tennis
+- [x] Football: 6 competitions - match model (1X2, handicap, goals, both-teams-score), player props (shots, shots on target, goals, assists), league outrights
+- [ ] American football (NFL + college), tennis
 
 ## Run the data download
 ```
@@ -39,3 +40,14 @@ saved settings, bad input, failed load, stale warning, dark mode, phone widths).
 cd site && cp ../data/predictions.json . && python -m http.server 8765 &
 node tests/e2e/site.test.js <output-folder>     # needs: npm i playwright
 ```
+
+
+## Football (soccer)
+```
+PYTHONPATH=src python -m betsuggester.soccer_ingest 202508     # matches + player stats from ESPN (fast, parallel)
+PYTHONPATH=src python -m betsuggester.soccer_predict           # writes data/predictions_soccer.json
+PYTHONPATH=src python -m betsuggester.soccer_backtest          # match model on unseen matches
+PYTHONPATH=src python -m betsuggester.soccer_props 2026-02-01  # player props on unseen matches
+PYTHONPATH=src python -m betsuggester.soccer_retro 2025-11-24  # league simulation vs how last season ended
+```
+Browser tests: `tests/e2e/nba.test.js` (47 checks) and `tests/e2e/football.test.js` (51 checks).

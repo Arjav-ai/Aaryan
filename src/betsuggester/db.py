@@ -11,6 +11,14 @@ CREATE TABLE IF NOT EXISTS player_games (
   game_id TEXT, team TEXT, is_home INTEGER, player TEXT, minutes REAL,
   pts INTEGER, reb INTEGER, ast INTEGER, fg3 INTEGER, stl INTEGER, blk INTEGER, tov INTEGER,
   PRIMARY KEY (game_id, player));
+CREATE TABLE IF NOT EXISTS soccer_matches (
+  match_id TEXT PRIMARY KEY, league TEXT, season INTEGER, date TEXT,
+  home_id TEXT, home TEXT, away_id TEXT, away TEXT, home_goals INTEGER, away_goals INTEGER);
+CREATE TABLE IF NOT EXISTS soccer_player_games (
+  match_id TEXT, league TEXT, date TEXT, team_id TEXT, team TEXT, is_home INTEGER,
+  player_id TEXT, player TEXT, pos TEXT, starter INTEGER, sub_in INTEGER, sub_out INTEGER,
+  shots INTEGER, sot INTEGER, goals INTEGER, assists INTEGER, fouls INTEGER, fouled INTEGER,
+  yellow INTEGER, saves INTEGER, PRIMARY KEY (match_id, player_id));
 """
 
 

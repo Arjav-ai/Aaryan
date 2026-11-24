@@ -25,16 +25,17 @@ class PropModel:
         self.alpha = max(float(np.sum((df[stat] - mu) ** 2 - mu) / np.sum(mu ** 2)), 0.01)
         return self
 
-    def tune_spread(self, df, stat="pts"):
-        """Choose the spread that gives the best-calibrated probabilities on games the
-        regressor did NOT train on (stops it being overconfident)."""
+    def tune_spread(self, df, stat="pts", lines=None):
+        """Choose the spread that gives the best-calibrated probabilities on games the regressor did NOT
+        train on (stops it being overconfident). `lines`: fixed lines to test (default: NBA-style lines
+        around each player's recent average)."""
         mu, y = self.mean(df), df[stat].to_numpy()
         base = df["stat_avg10"].to_numpy()
+        tests = [np.full(len(df), c) for c in lines] if lines else [np.floor(base + o) + 0.5 for o in LINE_OFFSETS[stat]]
         best = (np.inf, self.alpha)
         for a in np.linspace(0.02, 0.6, 30):
             self.alpha, ll = a, 0.0
-            for off in LINE_OFFSETS[stat]:
-                line = np.floor(base + off) + 0.5
+            for line in tests:
                 p = np.clip(self.p_over(mu, line), 1e-4, 1 - 1e-4)
                 hit = (y > line)
                 ll += -np.mean(hit * np.log(p) + (~hit) * np.log(1 - p))
@@ -54,12 +55,12 @@ class PropModel:
         return stats.nbinom.sf(np.floor(line), n, p)
 
 
-def fit_calibrated(train, stat="pts", features=None) -> "PropModel":
+def fit_calibrated(train, stat="pts", features=None, lines=None) -> "PropModel":
     """Fit on the older 75% of games, tune the spread on the newest 25% (so probabilities aren't
     overconfident), then refit the regressor on everything."""
     cut = train.date.quantile(0.75)
     m = PropModel(features).fit(train[train.date < cut], stat)
-    m.tune_spread(train[train.date >= cut], stat)
+    m.tune_spread(train[train.date >= cut], stat, lines)
     alpha = m.alpha
     m.reg.fit(train[m.features], train[stat])
     m.alpha = alpha

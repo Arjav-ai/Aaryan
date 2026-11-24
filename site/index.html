@@ -19,6 +19,7 @@
   --accent:#95a1ff; --accent-soft:#232a4d; --on-accent:#0f121a;
   --good:#4cc47c; --good-soft:#16301f; --warn:#e9b24c; --warn-soft:#352a10; --bad:#f27d7d; --bad-soft:#3b1c1c; color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
@@ -29,8 +30,11 @@ button,input,select{font:inherit;color:inherit}
 .bar{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
 h1{font-family:var(--font-head);font-size:22px;letter-spacing:-.01em;margin:0}
 #asof{color:var(--muted);font-size:12.5px}
-.tabs{display:flex;gap:4px;margin-top:10px}
-.tab{flex:1;padding:10px 8px;border:0;background:none;color:var(--muted);font-weight:600;border-bottom:3px solid transparent;cursor:pointer}
+.tabs{display:flex;gap:2px;margin-top:6px;overflow-x:auto}
+.sports{display:flex;gap:6px;margin-top:8px}
+.sport{padding:5px 14px;border:1px solid var(--line);border-radius:99px;background:var(--surface);cursor:pointer;font-weight:600;font-size:13.5px}
+.sport[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.tab{flex:1;white-space:nowrap;font-size:14px;padding:10px 6px;border:0;background:none;color:var(--muted);font-weight:600;border-bottom:3px solid transparent;cursor:pointer}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
 .tab .n{display:inline-block;min-width:20px;margin-left:6px;padding:0 6px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-size:12px}
 .notice{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--warn-soft);color:var(--warn);font-size:13.5px}
@@ -78,6 +82,26 @@ h1{font-family:var(--font-head);font-size:22px;letter-spacing:-.01em;margin:0}
 .sres{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;font-size:13px}
 .srow .field input{padding:7px 8px}
 .gh{color:var(--ink);font-family:var(--font-head);font-size:15px;text-transform:none;letter-spacing:0;margin:14px 0 0}
+.mk{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+.mk:first-of-type{border-top:0;padding-top:0}
+.mk-head{display:flex;align-items:end;justify-content:space-between;gap:10px}
+.mk-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding-bottom:9px}
+.mk-head .field{width:96px}
+.opts{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(92px,1fr))}
+.opts.o3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.opt{display:grid;gap:4px;min-width:0;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.olab{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.opct{font-family:var(--font-head);font-weight:700;font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums}
+.opt input{width:100%;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.oedge{font-size:12px;min-height:18px}
+.oedge .pill{padding:1px 7px}
+.orow{display:grid;grid-template-columns:minmax(0,1fr) auto 84px;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.orow:first-of-type{border-top:0}
+.orow .oname{font-weight:600;overflow-wrap:anywhere}
+.orow .osub{font-size:12px;color:var(--muted)}
+.orow .opct{font-size:20px;text-align:right}
+.orow .oedge{grid-column:1/-1}
+.obar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
 details summary{cursor:pointer;color:var(--muted);font-size:12.5px}
 details p{margin:6px 0 0;font-size:13px;color:var(--muted)}
 .more{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;font-weight:500}
@@ -94,26 +118,24 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 <div class="wrap">
   <header class="top">
     <div class="bar"><h1>Prop Finder</h1><span id="asof">Loading&#8230;</span></div>
-    <nav class="tabs" role="tablist" aria-label="Sections">
-      <button class="tab" id="tab-best" role="tab" data-tab="best" aria-selected="false">Best bets<span class="n" id="n-best">0</span></button>
-      <button class="tab" id="tab-probable" role="tab" data-tab="probable" aria-selected="true">Most probable</button>
-    </nav>
+    <div class="sports" id="sports" role="group" aria-label="Sport"></div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
   </header>
 
   <div class="notice" id="stale" hidden></div>
 
   <section class="controls" aria-label="Filters">
     <div class="chips" id="stat-chips"></div>
-    <div class="grid2">
+    <div class="grid2" id="g-game">
       <label class="field"><span>Game</span><select id="game"></select></label>
-      <label class="field"><span>Player</span><input id="q" type="search" placeholder="Search name" autocomplete="off"></label>
+      <label class="field"><span id="q-label">Player</span><input id="q" type="search" placeholder="Search name" autocomplete="off"></label>
     </div>
-    <div class="grid2">
+    <div class="grid2" id="g-min">
       <label class="field"><span>Minimum odds</span><input id="min" type="number" inputmode="decimal" step="0.01" min="1" placeholder="e.g. 1.50"></label>
       <label class="field"><span>Starting line</span>
         <select id="target"><option value="0.7">70% chance</option><option value="0.8">80% chance</option><option value="0.9">90% chance</option></select></label>
     </div>
-    <div class="seg" role="group" aria-label="Over or under">
+    <div class="seg" id="g-side" role="group" aria-label="Over or under">
       <button id="side-over" data-side="over" aria-pressed="true">Over</button>
       <button id="side-under" data-side="under" aria-pressed="false">Under</button>
     </div>
@@ -124,13 +146,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 
   <details class="about">
     <summary>How accurate is this?</summary>
-    <ul>
-      <li><strong>The percentage</strong> is the model's chance that the player lands on your side of the line. Change the line to the one your bookmaker offers and it recalculates.</li>
-      <li><strong>Tested on past games</strong> the model had not seen: when it said 70&#8211;80% the prop hit about 73% of the time. Above 90% it hit between 86% and 94%, depending on the stat, so this page never shows more than 90%.</li>
-      <li><strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. A positive number means the odds pay more than the model thinks the bet is worth. It is an estimate, not a promise.</li>
-      <li><strong>Not covered:</strong> the effect of a teammate being out (flagged on the card, not priced in). Top scorers outscored the model by about 0.7 points in testing. Real bookmaker lines have not been back-tested. Only one and a half seasons of games are in the data.</li>
-      <li>This only suggests bets; it places nothing. Check what is legal where you are, and only stake money you can afford to lose.</li>
-    </ul>
+    <ul id="about-list"></ul>
   </details>
 </div>
 
@@ -138,14 +154,28 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 (function(){
   var $=function(s){return document.querySelector(s)};
   var LS='propfinder-v1', CAP=0.9, PAGE=40;
-  var STATS=['pts','reb','ast','fg3'];
-  var S={tab:'probable',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{}};
+  var STATS_NBA=['pts','reb','ast','fg3'];
+  var SPORTS={
+    nba:{label:'NBA',file:'predictions.json',tabs:['best','probable'],about:[
+      '<strong>The percentage</strong> is the model\'s chance that the player lands on your side of the line. Change the line to the one your bookmaker offers and it recalculates.',
+      '<strong>Tested on past games</strong> the model had not seen: when it said 70\u201380% the prop hit about 73% of the time. Above 90% it hit between 86% and 94%, depending on the stat, so this page never shows more than 90%.',
+      '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. A positive number means the odds pay more than the model thinks the bet is worth. It is an estimate, not a promise.',
+      '<strong>Not covered:</strong> the effect of a teammate being out (flagged on the card, not priced in). Top scorers outscored the model by about 0.7 points in testing. Real bookmaker lines have not been back-tested. Only one and a half seasons of games are in the data.']},
+    football:{label:'Football',file:'predictions_soccer.json',tabs:['matches','best','probable','outrights'],about:[
+      '<strong>Matches:</strong> tested on 1,400 matches the model had not seen, its win/draw/loss probabilities scored clearly better than a guess based on league averages, and home-win and handicap chances matched what happened. <strong>Total goals is the weakest market</strong> (it said 53% for over 2.5 goals; 56% happened).',
+      '<strong>Players:</strong> chances assume the player plays. Line-ups come out about an hour before kick-off, so check he starts. Shots and shots on target were well calibrated over 28,000 test player-games; goals and assists are rare events, so those are rougher.',
+      '<strong>Outrights</strong> come from simulating the rest of each league 20,000 times. The model uses last season too, so it can rate a team above one with more points this season. Test runs on last season were reasonable but small, so treat big favourites as less certain than shown. Nothing is shown above 90%.',
+      '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. It is an estimate, not a promise. Only suggestions: this page places nothing. Check what is legal where you are, and only stake money you can afford to lose.']}
+  };
+  var TABNAME={matches:'Matches',best:'Best bets',probable:'Most probable',outrights:'Outrights'};
+  var S={sport:'nba',tab:'probable',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{},ol:null,om:'title'};
   try{var saved=JSON.parse(localStorage.getItem(LS)||'{}');for(var k in saved)S[k]=saved[k];}catch(e){}
+  if(!SPORTS[S.sport])S.sport='nba';
   S.shown=PAGE;
-  function save(){try{localStorage.setItem(LS,JSON.stringify({tab:S.tab,stat:S.stat,min:S.min,target:S.target,side:S.side,rows:S.rows}));}catch(e){}}
+  function save(){try{localStorage.setItem(LS,JSON.stringify({sport:S.sport,tab:S.tab,stat:S.stat,min:S.min,target:S.target,side:S.side,rows:S.rows,ol:S.ol,om:S.om}));}catch(e){}}
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 
-  /* Negative-binomial distribution: the same shape the model was calibrated with. */
+  /* Negative-binomial distribution: the same shape the models were calibrated with. */
   var cache={};
   function dist(mu,alpha){
     var key=mu+'|'+alpha; if(cache[key])return cache[key];
@@ -166,9 +196,8 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     else{while(CDF(d,k)<t)k++;}
     return k+0.5;
   }
-
-  /* With a minimum odds set: the line with the highest chance of landing that still pays at least that.
-     A bet pays at least `min` only if its chance is at most 1/min. */
+  /* With a minimum odds set: the line with the highest chance that still pays at least that
+     (a bet pays at least `min` only if its chance is at most 1/min). */
   function minLine(d,side,cap){
     var k=0;
     if(side==='over'){while(1-CDF(d,k)>cap)k++;return{line:k+0.5,ok:true};}
@@ -176,10 +205,26 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     while(CDF(d,k+1)<=cap)k++;
     return{line:k+0.5,ok:true};
   }
-  var D=null,GAMES={},ROWS=[],ROWMAP={};
   function qtile(d,q){var k=0;while(CDF(d,k)<q)k++;return k}
   function typicalLine(mu){return Math.floor(mu)+0.5}
+
+  /* ---------- data per sport ---------- */
+  var C={};            // sport -> {d, ROWS, ROWMAP, GAMES, STATS}
+  var cur=null;
   function stateKey(r){return r.base+'|'+S.side}
+  function fmtOdds(x){return x==null?'\u2013':(x>99?'99+':x.toFixed(2))}
+  function fmtLine(x){return Number.isInteger(x)?String(x):x.toFixed(1)}
+  function fmtPct(e){return e.capped?'90%+':(e.win<0.005?'<1%':Math.round(e.win*100)+'%')}
+  function when(g){try{return new Date(g.start).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'})}catch(e){return g.date}}
+  function gname(g){return g.league_name?g.home+' v '+g.away:g.away+' at '+g.home}
+  function edgePill(ev,short){
+    if(ev==null)return '';
+    var pc=Math.round(ev*100);
+    return '<span class="pill '+(ev>0?'good':'bad')+'">'+(short?'':(ev>0?'Worth taking: ':'Not worth it: '))+(pc>0?'+':'')+pc+'% edge</span>';
+  }
+  function money(win,push,odds){var w=Math.min(win,CAP);return{win:w,capped:win>CAP,ev:odds?w*odds+push-1:null,be:w>0?(1-push)/w:null}}
+
+  /* ---------- player props ---------- */
   function evalRow(r,typ){
     var st=S.rows[stateKey(r)]||{};
     var minO=parseFloat(S.min)||0, unreachable=false, line;
@@ -188,21 +233,13 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     else if(minO>1){var ml=minLine(r.d,S.side,1/minO);line=ml.line;unreachable=!ml.ok;}
     else line=safeLine(r.d,S.side,S.target);
     var pr=probs(r.d,line,S.side);
-    var win=Math.min(pr.win,CAP), capped=pr.win>CAP;
-    var odds=(st.odds>1)?st.odds:null;
-    return{line:line,unreachable:unreachable,win:win,capped:capped,push:pr.push,odds:odds,
-      ev:odds?win*odds+pr.push-1:null, be:win>0?(1-pr.push)/win:null, userLine:st.line!=null};
+    var odds=(st.odds>1)?st.odds:null, m=money(pr.win,pr.push,odds);
+    return{line:line,unreachable:unreachable,win:m.win,capped:m.capped,push:pr.push,odds:odds,ev:m.ev,be:m.be,userLine:st.line!=null};
   }
-  function fmtOdds(x){return x==null?'\u2013':(x>99?'99+':x.toFixed(2))}
-  function fmtPct(e){return e.capped?'90%+':(e.win<0.005?'<1%':Math.round(e.win*100)+'%')}
-  function fmtLine(x){return Number.isInteger(x)?String(x):x.toFixed(1)}
-  function when(g){try{return new Date(g.start).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'})}catch(e){return g.date}}
-
   function resHTML(r,e){
     var h='<span class="pill">Break-even odds '+fmtOdds(e.be)+'</span>';
     if(e.ev==null)return h+'<span class="pill">Type the odds to see the edge</span>';
-    var pc=Math.round(e.ev*100);
-    return h+'<span class="pill '+(e.ev>0?'good':'bad')+'">'+(e.ev>0?'Worth taking: ':'Not worth it: ')+(pc>0?'+':'')+pc+'% edge</span>';
+    return h+edgePill(e.ev);
   }
   function pctHTML(e){return fmtPct(e)+'<small>'+(S.side==='over'?'to go over':'to stay under')+'</small>'}
   function l5HTML(r,e){
@@ -210,18 +247,22 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       var c=''; if(v===e.line)c=''; else if(S.side==='over')c=v>e.line?'hit':'miss'; else c=v<e.line?'hit':'miss';
       return '<b class="'+c+'">'+v+'</b>';}).join('');
   }
+  function injNotes(p){
+    var n='';
+    if(p.status&&p.note)n+='<p><strong>'+esc(p.name)+':</strong> '+esc(p.note)+'</p>';
+    if(p.teammates_out&&p.teammates_out.length)n+='<p><strong>Out on '+esc(p.team)+':</strong> '+p.teammates_out.map(esc).join(', ')+'. Their absence is not priced into the numbers; it often raises the others\' output.</p>';
+    return n;
+  }
   function cardHTML(r,e,dim){
-    var p=r.p,g=GAMES[p.game],opp=p.opp,sk=stateKey(r);
+    var p=r.p,g=cur.GAMES[p.game],sk=stateKey(r);
     var badges='';
     if(p.status)badges+='<span class="badge warn">'+esc(p.status)+'</span>';
     if(p.teammates_out&&p.teammates_out.length)badges+='<span class="badge warn">Teammate out</span>';
-    var notes='';
-    if(p.status&&p.note)notes+='<p><strong>'+esc(p.name)+':</strong> '+esc(p.note)+'</p>';
-    if(p.teammates_out&&p.teammates_out.length)notes+='<p><strong>Out on '+esc(p.team)+':</strong> '+p.teammates_out.map(esc).join(', ')+'. Their absence is not priced into the %; it often raises the others\' numbers.</p>';
-    notes+='<p>Model expects <strong>'+r.mu.toFixed(1)+'</strong> '+esc(r.unit)+'. Last-10-game average: '+r.avg10+'. Plays about '+Math.round(p.minutes)+' minutes.</p>';
+    var notes=injNotes(p);
+    notes+='<p>Model expects <strong>'+r.mu.toFixed(2).replace(/\.?0+$/,'')+'</strong> '+esc(r.unit.toLowerCase())+'. Last-10-game average: '+r.avg10+'. '+(p.tag?esc(p.tag)+'.':'Plays about '+Math.round(p.minutes)+' minutes.')+'</p>';
     return '<article class="card'+(dim?' dim':'')+'" data-key="'+esc(sk)+'" data-base="'+esc(r.base)+'">'+
       '<div class="head"><div class="who"><div class="name">'+esc(p.name)+'</div>'+
-      '<div class="meta">'+esc(r.unit)+' \u00b7 '+esc(p.team)+(p.home?' vs ':' at ')+esc(opp)+' \u00b7 '+esc(when(g))+'</div></div>'+
+      '<div class="meta">'+esc(r.unit)+' \u00b7 '+esc(p.team)+(p.home?' vs ':' at ')+esc(p.opp)+' \u00b7 '+esc(when(g))+'</div></div>'+
       '<div class="pct">'+pctHTML(e)+'</div></div>'+
       (badges?'<div class="badges">'+badges+'</div>':'')+
       '<div class="inputs"><div class="side">'+(S.side==='over'?'Over':'Under')+'</div>'+
@@ -231,81 +272,187 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       '<div class="l5">'+l5HTML(r,e)+'</div>'+
       '<details><summary>Details</summary>'+notes+'</details></article>';
   }
-
-  function injNotes(p){
-    var n='';
-    if(p.status&&p.note)n+='<p><strong>'+esc(p.name)+':</strong> '+esc(p.note)+'</p>';
-    if(p.teammates_out&&p.teammates_out.length)n+='<p><strong>Out on '+esc(p.team)+':</strong> '+p.teammates_out.map(esc).join(', ')+'. Their absence is not priced into the numbers; it often raises the others\' output.</p>';
-    return n;
-  }
   function sresHTML(r,e){
     var h='<span class="pill">'+fmtPct(e)+' '+(S.side==='over'?'over':'under')+' '+fmtLine(e.line)+'</span><span class="pill">Break-even '+fmtOdds(e.be)+'</span>';
-    if(e.ev!=null){var pc=Math.round(e.ev*100);h+='<span class="pill '+(e.ev>0?'good':'bad')+'">'+(e.ev>0?'Worth taking: ':'Not worth it: ')+(pc>0?'+':'')+pc+'% edge</span>';}
-    return h;
+    return h+edgePill(e.ev);
   }
   function srowHTML(r,e){
     var lo=qtile(r.d,0.1),hi=qtile(r.d,0.9);
-    return '<div class="srow" data-key="'+esc(stateKey(r))+'" data-base="'+esc(r.base)+'"><div class="spred"><span class="slabel">'+esc(r.unit)+'</span><b>'+r.mu.toFixed(1)+'</b><span class="range">likely '+lo+'\u2013'+hi+'</span></div>'+
+    return '<div class="srow" data-key="'+esc(stateKey(r))+'" data-base="'+esc(r.base)+'"><div class="spred"><span class="slabel">'+esc(r.unit)+'</span><b>'+r.mu.toFixed(r.mu<1?2:1)+'</b><span class="range">likely '+lo+'\u2013'+hi+'</span></div>'+
       '<label class="field"><span>Line</span><input data-field="line" type="number" inputmode="decimal" step="0.5" min="0" value="'+e.line+'"></label>'+
       '<label class="field"><span>Odds</span><input data-field="odds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="1.85" value="'+(e.odds||'')+'"></label>'+
       '<div class="sres">'+sresHTML(r,e)+'</div></div>';
   }
   function playerCardHTML(p){
-    var g=GAMES[p.game],badges='';
+    var badges='';
     if(p.status)badges+='<span class="badge warn">'+esc(p.status)+'</span>';
     if(p.teammates_out&&p.teammates_out.length)badges+='<span class="badge warn">Teammate out</span>';
-    var rows=STATS.filter(function(s){return p.stats[s]&&(S.stat==='all'||S.stat===s)}).map(function(s){
-      var r=ROWMAP[p.game+'|'+p.name+'|'+s];return srowHTML(r,evalRow(r,true));}).join('');
+    var rows=cur.STATS.filter(function(s){return p.stats[s]&&(S.stat==='all'||S.stat===s)}).map(function(s){
+      var r=cur.ROWMAP[p.game+'|'+p.name+'|'+s];return srowHTML(r,evalRow(r,true));}).join('');
     var notes=injNotes(p);
-    return '<article class="card"><div class="head"><div class="who"><div class="name">'+esc(p.name)+'</div><div class="meta">'+esc(p.team)+(p.home?' vs ':' at ')+esc(p.opp)+' \u00b7 about '+Math.round(p.minutes)+' min</div></div></div>'+
+    return '<article class="card"><div class="head"><div class="who"><div class="name">'+esc(p.name)+'</div><div class="meta">'+esc(p.team)+(p.home?' vs ':' at ')+esc(p.opp)+' \u00b7 '+(p.tag?esc(p.tag):'about '+Math.round(p.minutes)+' min')+'</div></div></div>'+
       (badges?'<div class="badges">'+badges+'</div>':'')+'<div class="srows">'+rows+'</div>'+(notes?'<details><summary>Injury notes</summary>'+notes+'</details>':'')+'</article>';
   }
   function playersByGame(){
     var q=S.q.trim().toLowerCase(),out=[];
-    D.games.forEach(function(g){
+    cur.d.games.forEach(function(g){
       if(S.game!=='all'&&g.id!==S.game)return;
-      var ps=D.players.filter(function(p){return p.game===g.id&&(!q||p.name.toLowerCase().indexOf(q)>=0)&&STATS.some(function(s){return p.stats[s]&&(S.stat==='all'||S.stat===s)})});
+      var ps=cur.d.players.filter(function(p){return p.game===g.id&&(!q||p.name.toLowerCase().indexOf(q)>=0)&&cur.STATS.some(function(s){return p.stats[s]&&(S.stat==='all'||S.stat===s)})});
       if(ps.length)out.push({g:g,ps:ps});
     });
     return out;
   }
   function visible(){
-    var q=S.q.trim().toLowerCase(), min=parseFloat(S.min)||0;
-    var out=[];
-    ROWS.forEach(function(r){
+    var q=S.q.trim().toLowerCase(), min=parseFloat(S.min)||0, out=[];
+    cur.ROWS.forEach(function(r){
       if(S.stat!=='all'&&r.stat!==S.stat)return;
       if(S.game!=='all'&&r.p.game!==S.game)return;
       if(q&&r.p.name.toLowerCase().indexOf(q)<0)return;
       var e=evalRow(r);
       if(S.tab==='probable'&&min&&((e.odds&&e.odds<min)||(!e.odds&&e.unreachable)))return;   // pays less than your minimum: hide
-      if(S.tab==='best'&&!e.odds)return;                        // best bets need your odds
+      if(S.tab==='best'&&!e.odds)return;
       out.push({r:r,e:e});
     });
     return out;
   }
-  function counts(){
-    var good=0,all=0,min=parseFloat(S.min)||0;
-    ROWS.forEach(function(r){var e=evalRow(r);all++; if(e.ev!=null&&e.ev>0)good++;});
-    $('#n-best').textContent=good;
+
+  /* ---------- football matches ---------- */
+  function gridProb(grid,kind,sel,line){
+    var win=0,push=0;
+    for(var i=0;i<grid.length;i++)for(var j=0;j<grid[i].length;j++){
+      var p=grid[i][j];
+      if(kind==='1x2'){if((sel==='home'&&i>j)||(sel==='draw'&&i===j)||(sel==='away'&&j>i))win+=p;}
+      else if(kind==='hcp'){var d=(sel==='home'?i-j:j-i)+(sel==='home'?line:-line);if(d>0)win+=p;else if(d===0)push+=p;}
+      else if(kind==='tot'){var t=i+j;if(sel==='over'){if(t>line)win+=p;else if(t===line)push+=p;}else{if(t<line)win+=p;else if(t===line)push+=p;}}
+      else if(kind==='btts'){var both=i>0&&j>0;if((sel==='yes')===both)win+=p;}
+    }
+    return{win:win,push:push};
+  }
+  var MK_DEFAULT_LINE={hcp:0,tot:2.5};
+  function mLine(m,kind){var st=S.rows['ML|'+m.id+'|'+kind];return st&&st.line!=null?st.line:MK_DEFAULT_LINE[kind]}
+  function mKey(m,kind,sel){return 'M|'+m.id+'|'+kind+'|'+sel}
+  function mLabel(m,kind,sel,line){
+    if(kind==='1x2')return sel==='home'?m.home:sel==='away'?m.away:'Draw';
+    if(kind==='hcp'){var l=sel==='home'?line:-line;return (sel==='home'?m.home:m.away)+' '+(l>0?'+':'')+fmtLine(l)}
+    if(kind==='tot')return (sel==='over'?'Over ':'Under ')+fmtLine(line)+' goals';
+    return sel==='yes'?'Both teams score':'Not both teams score';
+  }
+  function mEval(m,kind,sel,line){
+    var pr=gridProb(m.grid,kind,sel,line), st=S.rows[mKey(m,kind,sel)]||{};
+    var odds=(st.odds>1&&(kind==='1x2'||kind==='btts'||st.line===line))?st.odds:null;
+    var x=money(pr.win,pr.push,odds);
+    return{win:x.win,capped:x.capped,push:pr.push,odds:odds,ev:x.ev,be:x.be,line:line};
+  }
+  function optHTML(m,kind,sel){
+    var line=(kind==='hcp'||kind==='tot')?mLine(m,kind):null, e=mEval(m,kind,sel,line);
+    return '<div class="opt" data-key="'+esc(mKey(m,kind,sel))+'" data-mid="'+esc(m.id)+'" data-kind="'+kind+'" data-sel="'+sel+'">'+
+      '<span class="olab">'+esc(mLabel(m,kind,sel,line))+'</span><b class="opct">'+fmtPct(e)+'</b>'+
+      '<input data-field="modds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="Odds" aria-label="Odds for '+esc(mLabel(m,kind,sel,line))+'" value="'+(e.odds||'')+'">'+
+      '<span class="oedge">'+(e.ev!=null?edgePill(e.ev,true):'<span class="meta">Break-even '+fmtOdds(e.be)+'</span>')+'</span></div>';
+  }
+  function marketHTML(m,kind,title,sels){
+    var line=(kind==='hcp'||kind==='tot')?'<label class="field"><span>'+(kind==='hcp'?'Home line':'Goals line')+'</span><input data-field="mline" type="number" inputmode="decimal" step="0.5" value="'+mLine(m,kind)+'"></label>':'';
+    return '<div class="mk" data-key="ML|'+esc(m.id)+'|'+kind+'" data-mid="'+esc(m.id)+'" data-kind="'+kind+'"><div class="mk-head"><div class="mk-title">'+title+'</div>'+line+'</div><div class="opts'+(sels.length===3?' o3':'')+'">'+
+      sels.map(function(s){return optHTML(m,kind,s)}).join('')+'</div></div>';
+  }
+  function matchCardHTML(m){
+    return '<article class="card" data-mcard="'+esc(m.id)+'"><div class="head"><div class="who"><div class="name">'+esc(m.home)+' v '+esc(m.away)+'</div>'+
+      '<div class="meta">'+esc(m.league_name)+' \u00b7 '+esc(when(m))+' \u00b7 expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1)+'</div></div></div>'+
+      marketHTML(m,'1x2','Result',['home','draw','away'])+marketHTML(m,'hcp','Handicap',['home','away'])+
+      marketHTML(m,'tot','Total goals',['over','under'])+marketHTML(m,'btts','Both teams to score',['yes','no'])+'</article>';
+  }
+  function matchesVisible(){
+    var q=S.q.trim().toLowerCase();
+    return cur.d.games.filter(function(g){return (S.game==='all'||g.id===S.game)&&(!q||(g.home+' '+g.away).toLowerCase().indexOf(q)>=0)});
   }
 
+  /* ---------- football outrights ---------- */
+  var OM={title:'Win the league',top4:'Top 4',relegated:'Relegated'};
+  function oKey(lg,tid,mk){return 'O|'+lg+'|'+tid+'|'+mk}
+  function oEval(lg,t,mk){var st=S.rows[oKey(lg,t.team_id,mk)]||{};var odds=st.odds>1?st.odds:null,x=money(t[mk],0,odds);return{win:x.win,capped:x.capped,odds:odds,ev:x.ev,be:x.be}}
+  function oRowHTML(lg,t,mk){
+    var e=oEval(lg,t,mk);
+    return '<div class="orow" data-key="'+esc(oKey(lg,t.team_id,mk))+'" data-lg="'+esc(lg)+'" data-tid="'+esc(t.team_id)+'"><div><div class="oname">'+esc(t.team)+'</div><div class="osub">'+t.played+' played \u00b7 '+t.points+' pts \u00b7 expected final '+t.exp_points+'</div></div>'+
+      '<b class="opct">'+fmtPct(e)+'</b><input data-field="oodds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="Odds" aria-label="Odds for '+esc(t.team)+'" value="'+(e.odds||'')+'">'+
+      '<div class="oedge">'+(e.ev!=null?edgePill(e.ev):'<span class="meta">Break-even '+fmtOdds(e.be)+'</span>')+'</div></div>';
+  }
+  function outrightsHTML(){
+    var O=cur.d.outrights, lgs=Object.keys(O); if(!S.ol||!O[S.ol])S.ol=lgs[0];
+    var q=S.q.trim().toLowerCase();
+    var bar='<div class="obar">'+lgs.map(function(l){return '<button class="chip" data-ol="'+l+'" aria-pressed="'+(l===S.ol)+'">'+esc(O[l].name)+'</button>'}).join('')+'</div>'+
+      '<div class="seg" role="group" aria-label="Market">'+Object.keys(OM).map(function(k){return '<button data-om="'+k+'" aria-pressed="'+(k===S.om)+'">'+OM[k]+'</button>'}).join('')+'</div>';
+    var teams=O[S.ol].teams.slice().sort(function(a,b){return b[S.om]-a[S.om]});
+    var note=S.om==='relegated'?'Bottom '+O[S.ol].relegated_places+' go down.':S.om==='top4'?'Top 4 finish.':'League winner.';
+    return bar+'<p class="hint">'+note+' Simulated 20,000 times from the current table. Type the odds you are offered to see the edge.</p><div class="card">'+
+      teams.map(function(t){return oRowHTML(S.ol,t,S.om)}).join('')+'</div>';
+  }
+
+  /* ---------- Best bets: everything you have priced, ranked by edge ---------- */
+  function pricedExtras(){
+    var out=[];
+    Object.keys(S.rows).forEach(function(k){
+      var st=S.rows[k]; if(!(st.odds>1))return;
+      var p=k.split('|');
+      if(p[0]==='M'&&cur.d.games){
+        var m=cur.GAMES[p[1]]; if(!m||!m.grid)return;
+        var line=(p[2]==='hcp'||p[2]==='tot')?st.line:null; if((p[2]==='hcp'||p[2]==='tot')&&line==null)return;
+        var e=mEval(m,p[2],p[3],line); var pr=gridProb(m.grid,p[2],p[3],line), x=money(pr.win,pr.push,st.odds);
+        out.push({ev:x.ev,html:'<article class="card'+(x.ev>0?'':' dim')+'"><div class="head"><div class="who"><div class="name">'+esc(mLabel(m,p[2],p[3],line))+'</div><div class="meta">'+esc(m.home)+' v '+esc(m.away)+' \u00b7 '+esc(when(m))+'</div></div><div class="pct">'+(x.capped?'90%+':Math.round(x.win*100)+'%')+'<small>chance</small></div></div><div class="res"><span class="pill">Your odds '+fmtOdds(st.odds)+'</span><span class="pill">Break-even '+fmtOdds(x.be)+'</span>'+edgePill(x.ev)+'</div><div class="meta">Change it in Matches.</div></article>'});
+      }else if(p[0]==='O'&&cur.d.outrights){
+        var lg=cur.d.outrights[p[1]]; if(!lg)return;
+        var t=lg.teams.filter(function(t){return t.team_id===p[2]})[0]; if(!t)return;
+        var x2=money(t[p[3]],0,st.odds);
+        out.push({ev:x2.ev,html:'<article class="card'+(x2.ev>0?'':' dim')+'"><div class="head"><div class="who"><div class="name">'+esc(t.team)+' \u00b7 '+OM[p[3]].toLowerCase()+'</div><div class="meta">'+esc(lg.name)+'</div></div><div class="pct">'+(x2.capped?'90%+':Math.round(x2.win*100)+'%')+'<small>chance</small></div></div><div class="res"><span class="pill">Your odds '+fmtOdds(st.odds)+'</span><span class="pill">Break-even '+fmtOdds(x2.be)+'</span>'+edgePill(x2.ev)+'</div><div class="meta">Change it in Outrights.</div></article>'});
+      }
+    });
+    return out;
+  }
+  function counts(){
+    var good=0;
+    cur.ROWS.forEach(function(r){var e=evalRow(r);if(e.ev!=null&&e.ev>0)good++;});
+    pricedExtras().forEach(function(x){if(x.ev>0)good++;});
+    var n=$('#n-best'); if(n)n.textContent=good;
+  }
+
+  /* ---------- page ---------- */
+  function setControls(){
+    var t=S.tab, props=(t==='best'||t==='probable');
+    $('#stat-chips').hidden=!props; $('#g-min').hidden=!props; $('#g-side').hidden=!props;
+    $('#g-game').hidden=(t==='outrights');
+    $('#q-label').textContent=t==='matches'?'Team':'Player'; $('#q').placeholder=t==='matches'?'Search team':'Search name';
+  }
   function render(){
     var act=document.activeElement, keep=null;
     if(act&&act.dataset&&act.dataset.field&&act.closest('[data-key]')){
       keep={key:act.closest('[data-key]').dataset.key,field:act.dataset.field,pos:act.selectionStart};
     }
-    document.querySelectorAll('.tab').forEach(function(b){b.setAttribute('aria-selected',String(b.dataset.tab===S.tab))});
+    var sp=SPORTS[S.sport];
+    if(sp.tabs.indexOf(S.tab)<0)S.tab=sp.tabs.indexOf('probable')>=0?'probable':sp.tabs[0];
+    $('#sports').innerHTML=Object.keys(SPORTS).map(function(k){return '<button class="sport" data-sport="'+k+'" aria-pressed="'+(k===S.sport)+'">'+SPORTS[k].label+'</button>'}).join('');
+    $('#tabs').innerHTML=sp.tabs.map(function(t){return '<button class="tab" role="tab" data-tab="'+t+'" aria-selected="'+(t===S.tab)+'">'+TABNAME[t]+(t==='best'?'<span class="n" id="n-best">0</span>':'')+'</button>'}).join('');
     document.querySelectorAll('#stat-chips .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.stat===S.stat))});
-    document.querySelectorAll('.seg button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.side===S.side))});
-    counts();
+    document.querySelectorAll('#g-side button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.side===S.side))});
     $('#target').disabled=(parseFloat(S.min)||0)>1;
-    var items=visible(), html='', list=$('#list');
-    if(S.tab==='best'){
-      var good=items.filter(function(x){return x.e.ev>0}).sort(function(a,b){return b.e.ev-a.e.ev});
-      var bad=items.filter(function(x){return x.e.ev<=0}).sort(function(a,b){return b.e.ev-a.e.ev});
+    setControls(); counts();
+    var html='', list=$('#list'), min=parseFloat(S.min)||0;
+    if(S.tab==='matches'){
+      var ms=matchesVisible();
+      $('#hint').textContent='Chances from the match model. Type the odds you are offered on any option to see the edge.';
+      html=ms.slice(0,S.shown).map(matchCardHTML).join('');
+      if(!ms.length)html='<div class="empty"><strong>No matches found</strong>Try another game or team.</div>';
+      if(ms.length>S.shown)html+='<button class="more" id="more">Show more matches ('+(ms.length-S.shown)+' left)</button>';
+    }else if(S.tab==='outrights'){
+      $('#hint').textContent='';
+      html=outrightsHTML();
+    }else if(S.tab==='best'){
+      var items=visible();
+      var good=items.filter(function(x){return x.e.ev>0}).map(function(x){return{ev:x.e.ev,html:cardHTML(x.r,x.e,false)}});
+      var bad=items.filter(function(x){return x.e.ev<=0}).map(function(x){return{ev:x.e.ev,html:cardHTML(x.r,x.e,true)}});
+      if(S.game==='all'&&!S.q&&S.stat==='all')pricedExtras().forEach(function(x){(x.ev>0?good:bad).push(x)});
+      good.sort(function(a,b){return b.ev-a.ev}); bad.sort(function(a,b){return b.ev-a.ev});
       $('#hint').textContent='Every player in each game, with what the model predicts. "Likely" is the range he lands in 80% of games. Type your bookmaker\'s line and odds and the edge appears; worthwhile bets move to the top.';
-      if(good.length)html+='<h3>Worth taking ('+good.length+')</h3>'+good.map(function(x){return cardHTML(x.r,x.e,false)}).join('');
-      if(bad.length)html+='<h3>Not worth it at your odds ('+bad.length+')</h3>'+bad.map(function(x){return cardHTML(x.r,x.e,true)}).join('');
+      if(good.length)html+='<h3>Worth taking ('+good.length+')</h3>'+good.map(function(x){return x.html}).join('');
+      if(bad.length)html+='<h3>Not worth it at your odds ('+bad.length+')</h3>'+bad.map(function(x){return x.html}).join('');
       var groups=playersByGame(),total=0,shown=0,more=false;
       groups.forEach(function(gr){total+=gr.ps.length});
       html+='<h3>All players ('+total+')</h3>';
@@ -313,23 +460,22 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       groups.forEach(function(gr){
         if(shown>=S.shown){more=true;return;}
         var slice=gr.ps.slice(0,S.shown-shown); shown+=slice.length; if(slice.length<gr.ps.length)more=true;
-        html+='<h3 class="gh">'+esc(gr.g.away)+' at '+esc(gr.g.home)+' \u00b7 '+esc(when(gr.g))+'</h3>'+slice.map(playerCardHTML).join('');
+        html+='<h3 class="gh">'+esc(gname(gr.g))+' \u00b7 '+esc(when(gr.g))+'</h3>'+slice.map(playerCardHTML).join('');
       });
       if(more)html+='<button class="more" id="more">Show more players ('+(total-shown)+' left)</button>';
     }else{
-      items.sort(function(a,b){return b.e.win-a.e.win||b.e.line-a.e.line});
-      var min=parseFloat(S.min)||0;
+      var its=visible();
+      its.sort(function(a,b){return b.e.win-a.e.win||b.e.line-a.e.line});
       $('#hint').textContent=min>1?'Each line is the most likely one that still pays at least '+min.toFixed(2)+' (break-even). Type your bookmaker\'s line and odds; props with odds under '+min.toFixed(2)+' are hidden.':'Ranked by chance of landing. Type the line and odds your bookmaker shows.';
-      $('#target').disabled=min>1;
-      html=items.slice(0,S.shown).map(function(x){return cardHTML(x.r,x.e,false)}).join('');
-      if(!items.length)html='<div class="empty"><strong>No props match</strong>Try another game, stat or name.</div>';
-      if(items.length>S.shown)html+='<button class="more" id="more">Show more ('+(items.length-S.shown)+' left)</button>';
+      html=its.slice(0,S.shown).map(function(x){return cardHTML(x.r,x.e,false)}).join('');
+      if(!its.length)html='<div class="empty"><strong>No props match</strong>Try another game, stat or name.</div>';
+      if(its.length>S.shown)html+='<button class="more" id="more">Show more ('+(its.length-S.shown)+' left)</button>';
     }
     list.innerHTML=html;
     if(keep){
-      var cards=list.querySelectorAll('[data-key]');
-      for(var i=0;i<cards.length;i++){
-        if(cards[i].dataset.key===keep.key){var el=cards[i].querySelector('[data-field="'+keep.field+'"]');
+      var hosts=list.querySelectorAll('[data-key]');
+      for(var i=0;i<hosts.length;i++){
+        if(hosts[i].dataset.key===keep.key){var el=hosts[i].querySelector('[data-field="'+keep.field+'"]');
           if(el){el.focus();try{el.setSelectionRange(keep.pos,keep.pos)}catch(e){}} break;}
       }
     }
@@ -340,55 +486,99 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 
   document.addEventListener('click',function(ev){
     var t=ev.target.closest('button'); if(!t)return;
-    if(t.dataset.tab){S.tab=t.dataset.tab;S.shown=PAGE;save();render();window.scrollTo(0,0);}
+    if(t.dataset.sport){switchSport(t.dataset.sport);}
+    else if(t.dataset.tab){S.tab=t.dataset.tab;S.shown=PAGE;save();render();window.scrollTo(0,0);}
     else if(t.dataset.stat){S.stat=t.dataset.stat;S.shown=PAGE;save();render();}
     else if(t.dataset.side){S.side=t.dataset.side;save();render();}
+    else if(t.dataset.ol){S.ol=t.dataset.ol;save();render();}
+    else if(t.dataset.om){S.om=t.dataset.om;save();render();}
     else if(t.id==='more'){S.shown+=PAGE;render();}
   });
   $('#game').addEventListener('change',function(e){S.game=e.target.value;S.shown=PAGE;render();});
   $('#q').addEventListener('input',function(e){S.q=e.target.value;S.shown=PAGE;later();});
   $('#min').addEventListener('input',function(e){S.min=e.target.value;save();later();});
   $('#target').addEventListener('change',function(e){S.target=parseFloat(e.target.value);save();render();});
+
+  function num(v){var x=parseFloat(String(v).replace(',','.'));return (isNaN(x)||x<=0)?null:x}
   $('#list').addEventListener('input',function(ev){
     var inp=ev.target; if(!inp.dataset||!inp.dataset.field)return;
-    var host=inp.closest('[data-key]'), sk=host.dataset.key, r=ROWMAP[host.dataset.base];
-    var typ=host.classList.contains('srow');
-    var shownLine=evalRow(r,typ).line;
-    var v=parseFloat(String(inp.value).replace(',','.'));
-    var st=S.rows[sk]||(S.rows[sk]={});
-    if(isNaN(v)||v<=0)delete st[inp.dataset.field]; else st[inp.dataset.field]=v;
-    if(st.odds!=null&&st.line==null)st.line=shownLine;   // odds belong to the line you saw when you typed them
-    if(st.line==null&&st.odds==null)delete S.rows[sk];
-    save();
-    var e=evalRow(r,typ);
-    if(typ){host.querySelector('.sres').innerHTML=sresHTML(r,e);}
-    else{host.querySelector('.pct').innerHTML=pctHTML(e);host.querySelector('.res').innerHTML=resHTML(r,e);host.querySelector('.l5').innerHTML=l5HTML(r,e);}
+    var f=inp.dataset.field, v=num(inp.value);
+    if(f==='line'||f==='odds'){                         // player props
+      var host=inp.closest('[data-key]'), sk=host.dataset.key, r=cur.ROWMAP[host.dataset.base];
+      var typ=host.classList.contains('srow');
+      var shownLine=evalRow(r,typ).line;
+      var st=S.rows[sk]||(S.rows[sk]={});
+      if(v==null)delete st[f]; else st[f]=v;
+      if(st.odds!=null&&st.line==null)st.line=shownLine;   // odds belong to the line you saw when you typed them
+      if(st.line==null&&st.odds==null)delete S.rows[sk];
+      save();
+      var e=evalRow(r,typ);
+      if(typ){host.querySelector('.sres').innerHTML=sresHTML(r,e);}
+      else{host.querySelector('.pct').innerHTML=pctHTML(e);host.querySelector('.res').innerHTML=resHTML(r,e);host.querySelector('.l5').innerHTML=l5HTML(r,e);}
+    }else if(f==='modds'){                              // match market odds
+      var opt=inp.closest('.opt'), m=cur.GAMES[opt.dataset.mid], kind=opt.dataset.kind, sel=opt.dataset.sel, key=opt.dataset.key;
+      var line=(kind==='hcp'||kind==='tot')?mLine(m,kind):null;
+      if(v==null)delete S.rows[key]; else S.rows[key]={odds:v,line:line};
+      save(); var e2=mEval(m,kind,sel,line);
+      opt.querySelector('.oedge').innerHTML=e2.ev!=null?edgePill(e2.ev,true):'<span class="meta">Break-even '+fmtOdds(e2.be)+'</span>';
+    }else if(f==='mline'){                              // handicap / total line
+      var mk=inp.closest('.mk'), m2=cur.GAMES[mk.dataset.mid], k2=mk.dataset.kind, lk='ML|'+m2.id+'|'+k2;
+      var lv=parseFloat(String(inp.value).replace(',','.'));
+      if(isNaN(lv))delete S.rows[lk]; else S.rows[lk]={line:lv};
+      save();
+      mk.querySelectorAll('.opt').forEach(function(opt){
+        var line2=mLine(m2,k2), e3=mEval(m2,k2,opt.dataset.sel,line2);
+        opt.querySelector('.olab').textContent=mLabel(m2,k2,opt.dataset.sel,line2);
+        opt.querySelector('.opct').textContent=fmtPct(e3);
+        opt.querySelector('.oedge').innerHTML=e3.ev!=null?edgePill(e3.ev,true):'<span class="meta">Break-even '+fmtOdds(e3.be)+'</span>';
+        var oi=opt.querySelector('input'); oi.value=e3.odds||'';
+      });
+    }else if(f==='oodds'){                              // outright odds
+      var row=inp.closest('.orow'), key2=row.dataset.key, lgk=row.dataset.lg, tid=row.dataset.tid;
+      if(v==null)delete S.rows[key2]; else S.rows[key2]={odds:v};
+      save(); var t0=cur.d.outrights[lgk].teams.filter(function(t){return t.team_id===tid})[0], e4=oEval(lgk,t0,S.om);
+      row.querySelector('.oedge').innerHTML=e4.ev!=null?edgePill(e4.ev):'<span class="meta">Break-even '+fmtOdds(e4.be)+'</span>';
+    }
     later();
   });
 
-  function init(d){
-    D=d; d.games.forEach(function(g){GAMES[g.id]=g});
-    var teamOpp={};
+  function build(sport,d){
+    var c={d:d,ROWS:[],ROWMAP:{},GAMES:{},STATS:d.stats||STATS_NBA};
+    d.games.forEach(function(g){c.GAMES[g.id]=g});
     d.players.forEach(function(p){
-      STATS.forEach(function(s){
+      c.STATS.forEach(function(s){
         var x=p.stats[s]; if(!x)return;
-        var row={base:p.game+'|'+p.name+'|'+s,p:p,stat:s,unit:d.labels[s],mu:x.mu,avg10:x.avg10,last5:x.last5,d:dist(x.mu,x.alpha)};ROWS.push(row);ROWMAP[row.base]=row;
+        var row={base:p.game+'|'+p.name+'|'+s,p:p,stat:s,unit:d.labels[s],mu:x.mu,avg10:x.avg10,last5:x.last5,d:dist(x.mu,x.alpha)};
+        c.ROWS.push(row);c.ROWMAP[row.base]=row;
       });
     });
-    var chips='<button class="chip" data-stat="all" aria-pressed="true">All</button>'+STATS.map(function(s){return '<button class="chip" data-stat="'+s+'" aria-pressed="false">'+esc(d.labels[s])+'</button>'}).join('');
-    $('#stat-chips').innerHTML=chips;
-    $('#game').innerHTML='<option value="all">All games</option>'+d.games.map(function(g){return '<option value="'+esc(g.id)+'">'+esc(g.away)+' at '+esc(g.home)+' \u00b7 '+esc(when(g))+'</option>'}).join('');
-    $('#game').value=S.game;
-    $('#min').value=S.min; $('#target').value=String(S.target);
-    var gen=new Date(d.generated_at);
-    $('#asof').textContent='Games to '+new Date(d.data_through+'T12:00:00').toLocaleDateString([],{day:'numeric',month:'short'})+' \u00b7 updated '+gen.toLocaleString([],{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
-    var age=(Date.now()-gen.getTime())/36e5;
-    if(age>30){var days=Math.floor(age/24);var n=$('#stale');n.hidden=false;n.textContent='These predictions are about '+(days>=1?days+' day'+(days>1?'s':''):Math.round(age)+' hours')+' old. Ask Claude to refresh them before you rely on them: injuries and lineups change daily.';}
-    render();
+    C[sport]=c;
   }
-  fetch('predictions.json').then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(init).catch(function(){
-    $('#list').innerHTML='<div class="empty"><strong>Could not load the predictions</strong>Reload the page. If it keeps failing, ask Claude to republish it.</div>';
-    $('#asof').textContent='';
-  });
+  function chrome(){
+    var d=cur.d;
+    $('#stat-chips').innerHTML='<button class="chip" data-stat="all" aria-pressed="true">All</button>'+cur.STATS.map(function(s){return '<button class="chip" data-stat="'+s+'" aria-pressed="false">'+esc(d.labels[s])+'</button>'}).join('');
+    $('#game').innerHTML='<option value="all">All games</option>'+d.games.map(function(g){return '<option value="'+esc(g.id)+'">'+esc(gname(g))+' \u00b7 '+esc(when(g))+'</option>'}).join('');
+    $('#game').value=S.game; $('#min').value=S.min; $('#target').value=String(S.target);
+    var gen=new Date(d.generated_at);
+    $('#asof').textContent='Results to '+new Date(d.data_through+'T12:00:00').toLocaleDateString([],{day:'numeric',month:'short'})+' \u00b7 updated '+gen.toLocaleString([],{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
+    var age=(Date.now()-gen.getTime())/36e5, n=$('#stale');
+    if(age>30){var days=Math.floor(age/24);n.hidden=false;n.textContent='These predictions are about '+(days>=1?days+' day'+(days>1?'s':''):Math.round(age)+' hours')+' old. Ask Claude to refresh them before you rely on them: injuries, line-ups and fixtures change daily.';}
+    else n.hidden=true;
+    $('#about-list').innerHTML=SPORTS[S.sport].about.map(function(t){return '<li>'+t+'</li>'}).join('');
+  }
+  function show(reset){cur=C[S.sport];if(reset){S.game='all';S.stat='all';S.q='';$('#q').value='';}S.shown=PAGE;chrome();render();}
+  function loadSport(sport,done){
+    if(C[sport]){done();return;}
+    fetch(SPORTS[sport].file).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(d){build(sport,d);done();}).catch(function(){
+      $('#list').innerHTML='<div class="empty"><strong>Could not load the '+esc(SPORTS[sport].label)+' predictions</strong>Reload the page. If it keeps failing, ask Claude to republish it.</div>';
+      $('#asof').textContent='';
+    });
+  }
+  function switchSport(sport){
+    if(sport===S.sport)return;
+    var prev=S.sport; S.sport=sport; S.tab='probable';
+    loadSport(sport,function(){save();show(true);window.scrollTo(0,0);});
+  }
+  loadSport(S.sport,function(){show(false);});
 })();
 </script>

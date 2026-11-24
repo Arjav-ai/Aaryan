@@ -20,15 +20,15 @@ async function fresh(b, opts={}) {
   // 1 load
   ok('loads with no console/page errors', p.errs.length===0, JSON.stringify(p.errs));
   ok('shows 40 cards first', await cards(p).count()===40, String(await cards(p).count()));
-  ok('header shows data date + updated', /Games to .* updated/.test(await p.locator('#asof').innerText()), await p.locator('#asof').innerText());
+  ok('header shows data date + updated', /Results to .* updated/.test(await p.locator('#asof').innerText()), await p.locator('#asof').innerText());
   ok('no NaN/undefined text on first load', (await bad(p))==='', await bad(p));
 
   // 2 tabs
-  await p.click('#tab-best'); await p.waitForSelector('.srow');
-  ok('Best bets tab selected', (await p.getAttribute('#tab-best','aria-selected'))==='true');
+  await p.click('button[data-tab=best]'); await p.waitForSelector('.srow');
+  ok('Best bets tab selected', (await p.getAttribute('button[data-tab=best]','aria-selected'))==='true');
   ok('Best bets lists players with 4 stat rows each', (await p.locator('.srow').count())===160, String(await p.locator('.srow').count()));
-  await p.click('#tab-probable');
-  ok('back to Most probable', (await p.getAttribute('#tab-probable','aria-selected'))==='true' && await cards(p).first().locator('.pct').count()===1);
+  await p.click('button[data-tab=probable]');
+  ok('back to Most probable', (await p.getAttribute('button[data-tab=probable]','aria-selected'))==='true' && await cards(p).first().locator('.pct').count()===1);
 
   // 3 stat chips
   for (const [stat,label] of [['pts','Points'],['reb','Rebounds'],['ast','Assists'],['fg3','Threes']]) {
@@ -141,7 +141,7 @@ async function fresh(b, opts={}) {
   await p.click('#more'); ok('Show more adds cards', await cards(p).count()===80, String(await cards(p).count()));
 
   // 14 best bets: worth / not worth + all-players structure + typing focus
-  await p.click('#tab-best'); await p.waitForSelector('.srow');
+  await p.click('button[data-tab=best]'); await p.waitForSelector('.srow');
   const rowsBefore = await p.locator('.srow').count();
   await p.click('button[data-stat=pts]'); ok('Best bets stat filter -> 1 row per player', (await p.locator('.srow').count())===40, String(await p.locator('.srow').count()));
   await p.click('button[data-stat=all]');
@@ -155,7 +155,7 @@ async function fresh(b, opts={}) {
   ok('tab count updates', /^\d+$/.test(await p.locator('#n-best').innerText()));
   // empty-state (fresh)
   await p.evaluate(()=>localStorage.clear()); await p.reload(); await p.waitForSelector('#list article.card');
-  await p.click('#tab-best'); await p.waitForSelector('.srow');
+  await p.click('button[data-tab=best]'); await p.waitForSelector('.srow');
   ok('fresh Best bets shows all-players list, no empty-state crash', (await p.locator('.srow').count())>0 && (await bad(p))==='');
   await p.click('#more'); ok('Best bets show more players', (await p.locator('article.card').count())>40, String(await p.locator('article.card').count()));
 
@@ -168,7 +168,7 @@ async function fresh(b, opts={}) {
 
   // 16 failure + stale handling
   const f = await fresh(b,{route:r=>r.abort()}); await f.waitForTimeout(800);
-  ok('load failure shows a clear message', /Could not load the predictions/.test(await f.locator('#list').innerText())); await f.context().close();
+  ok('load failure shows a clear message', /Could not load the NBA predictions/.test(await f.locator('#list').innerText())); await f.context().close();
   const old = JSON.parse(fs.readFileSync('/home/user/aaryan/data/predictions.json','utf8'));
   const st = await fresh(b,{route:r=>r.fulfill({json:{...old,generated_at:new Date(Date.now()-3*864e5).toISOString()}})}); await st.waitForSelector('#list article.card');
   ok('stale notice appears when predictions are 3 days old', await st.locator('#stale').isVisible(), await st.locator('#stale').innerText().catch(()=>'')); await st.context().close();
