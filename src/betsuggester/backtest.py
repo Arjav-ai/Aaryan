@@ -1,6 +1,6 @@
 """Honest test: train on the past, predict games the model has never seen.
 
-Usage: python -m betsuggester.backtest [split_date]   (default 2026-11-01)
+Usage: python -m betsuggester.backtest [split_date]   (tests points, rebounds, assists, threes)   (default 2026-11-01)
 """
 import sys
 
@@ -9,7 +9,7 @@ import pandas as pd
 from scipy import stats
 
 from .features import FEATURES, add_features, load_player_games
-from .model import PropModel
+from .model import LINE_OFFSETS, STATS, PropModel
 
 
 def run(split="2026-11-01", stat="pts"):
@@ -33,12 +33,12 @@ def run(split="2026-11-01", stat="pts"):
 
     # Typical bookmaker-style lines: the player's last-10 average rounded to a .5
     rows = []
-    for off in (-4, -2, 0, 2, 4):
+    for off in LINE_OFFSETS[stat]:
         line = np.floor(base + off) + 0.5
         rows.append(pd.DataFrame({"p": m.p_over(mu, line), "hit": (y > line).astype(int), "line_off": off}))
     r = pd.concat(rows)
     # same thing for the naive baseline (last-10 average, same spread)
-    pb = pd.concat([pd.DataFrame({"p": m.p_over(base, np.floor(base + o) + 0.5)}) for o in (-4, -2, 0, 2, 4)])
+    pb = pd.concat([pd.DataFrame({"p": m.p_over(base, np.floor(base + o) + 0.5)}) for o in LINE_OFFSETS[stat]])
     eps = 1e-4
     ll = lambda p, h: -np.mean(h * np.log(np.clip(p, eps, 1)) + (1 - h) * np.log(np.clip(1 - p, eps, 1)))
     print(f"log-loss (lower is better): model {ll(r.p.to_numpy(), r.hit.to_numpy()):.4f}  "
@@ -52,4 +52,6 @@ def run(split="2026-11-01", stat="pts"):
 
 
 if __name__ == "__main__":
-    run(*sys.argv[1:2])
+    for st in STATS:
+        print(f"\n===== {st} =====")
+        run(sys.argv[1] if len(sys.argv) > 1 else "2026-11-01", st)

@@ -9,7 +9,7 @@ Two sections planned:
 
 ## Status
 - [x] NBA data downloader (Basketball-Reference, cached, rate-limited)
-- [x] Points model + back-test (src/betsuggester/backtest.py); rebounds, assists, threes next
+- [x] Points, rebounds, assists, threes models + back-test (src/betsuggester/backtest.py)
 - [ ] Web page for iPhone (two sections)
 - [ ] Football, American football, tennis
 
