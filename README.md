@@ -9,7 +9,7 @@ Two sections planned:
 
 ## Status
 - [x] NBA data downloader (Basketball-Reference, cached, rate-limited)
-- [ ] Prop probability model + back-test
+- [x] Points model + back-test (src/betsuggester/backtest.py); rebounds, assists, threes next
 - [ ] Web page for iPhone (two sections)
 - [ ] Football, American football, tennis
 
