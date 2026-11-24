@@ -31,3 +31,11 @@ PYTHONPATH=src python -m betsuggester.ingest 2027     # new games only
 PYTHONPATH=src python -m betsuggester.predict         # writes data/predictions.json
 # then republish site/index.html together with data/predictions.json
 ```
+
+## Testing the page
+`tests/e2e/site.test.js` drives the page in a real browser (47 checks: filters, minimum odds, typing line/odds,
+saved settings, bad input, failed load, stale warning, dark mode, phone widths). To run it:
+```
+cd site && cp ../data/predictions.json . && python -m http.server 8765 &
+node tests/e2e/site.test.js <output-folder>     # needs: npm i playwright
+```

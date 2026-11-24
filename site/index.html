@@ -167,20 +167,34 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     return k+0.5;
   }
 
+  /* With a minimum odds set: the line with the highest chance of landing that still pays at least that.
+     A bet pays at least `min` only if its chance is at most 1/min. */
+  function minLine(d,side,cap){
+    var k=0;
+    if(side==='over'){while(1-CDF(d,k)>cap)k++;return{line:k+0.5,ok:true};}
+    if(CDF(d,0)>cap)return{line:0.5,ok:false};
+    while(CDF(d,k+1)<=cap)k++;
+    return{line:k+0.5,ok:true};
+  }
   var D=null,GAMES={},ROWS=[],ROWMAP={};
   function qtile(d,q){var k=0;while(CDF(d,k)<q)k++;return k}
   function typicalLine(mu){return Math.floor(mu)+0.5}
   function stateKey(r){return r.base+'|'+S.side}
   function evalRow(r,typ){
     var st=S.rows[stateKey(r)]||{};
-    var line=(st.line!=null)?st.line:(typ?typicalLine(r.mu):safeLine(r.d,S.side,S.target));
+    var minO=parseFloat(S.min)||0, unreachable=false, line;
+    if(st.line!=null)line=st.line;
+    else if(typ)line=typicalLine(r.mu);
+    else if(minO>1){var ml=minLine(r.d,S.side,1/minO);line=ml.line;unreachable=!ml.ok;}
+    else line=safeLine(r.d,S.side,S.target);
     var pr=probs(r.d,line,S.side);
     var win=Math.min(pr.win,CAP), capped=pr.win>CAP;
     var odds=(st.odds>1)?st.odds:null;
-    return{line:line,win:win,capped:capped,push:pr.push,odds:odds,
+    return{line:line,unreachable:unreachable,win:win,capped:capped,push:pr.push,odds:odds,
       ev:odds?win*odds+pr.push-1:null, be:win>0?(1-pr.push)/win:null, userLine:st.line!=null};
   }
-  function fmtOdds(x){return x==null?'\u2013':x.toFixed(2)}
+  function fmtOdds(x){return x==null?'\u2013':(x>99?'99+':x.toFixed(2))}
+  function fmtPct(e){return e.capped?'90%+':(e.win<0.005?'<1%':Math.round(e.win*100)+'%')}
   function fmtLine(x){return Number.isInteger(x)?String(x):x.toFixed(1)}
   function when(g){try{return new Date(g.start).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'})}catch(e){return g.date}}
 
@@ -190,7 +204,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     var pc=Math.round(e.ev*100);
     return h+'<span class="pill '+(e.ev>0?'good':'bad')+'">'+(e.ev>0?'Worth taking: ':'Not worth it: ')+(pc>0?'+':'')+pc+'% edge</span>';
   }
-  function pctHTML(e){return (e.capped?'90%+':Math.round(e.win*100)+'%')+'<small>'+(S.side==='over'?'to go over':'to stay under')+'</small>'}
+  function pctHTML(e){return fmtPct(e)+'<small>'+(S.side==='over'?'to go over':'to stay under')+'</small>'}
   function l5HTML(r,e){
     return '<span>Last 5</span>'+r.last5.map(function(v){
       var c=''; if(v===e.line)c=''; else if(S.side==='over')c=v>e.line?'hit':'miss'; else c=v<e.line?'hit':'miss';
@@ -225,7 +239,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     return n;
   }
   function sresHTML(r,e){
-    var h='<span class="pill">'+(e.capped?'90%+':Math.round(e.win*100)+'%')+' '+(S.side==='over'?'over':'under')+' '+fmtLine(e.line)+'</span><span class="pill">Break-even '+fmtOdds(e.be)+'</span>';
+    var h='<span class="pill">'+fmtPct(e)+' '+(S.side==='over'?'over':'under')+' '+fmtLine(e.line)+'</span><span class="pill">Break-even '+fmtOdds(e.be)+'</span>';
     if(e.ev!=null){var pc=Math.round(e.ev*100);h+='<span class="pill '+(e.ev>0?'good':'bad')+'">'+(e.ev>0?'Worth taking: ':'Not worth it: ')+(pc>0?'+':'')+pc+'% edge</span>';}
     return h;
   }
@@ -263,7 +277,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       if(S.game!=='all'&&r.p.game!==S.game)return;
       if(q&&r.p.name.toLowerCase().indexOf(q)<0)return;
       var e=evalRow(r);
-      if(S.tab==='probable'&&e.odds&&min&&e.odds<min)return;   // odds below your minimum: hide
+      if(S.tab==='probable'&&min&&((e.odds&&e.odds<min)||(!e.odds&&e.unreachable)))return;   // pays less than your minimum: hide
       if(S.tab==='best'&&!e.odds)return;                        // best bets need your odds
       out.push({r:r,e:e});
     });
@@ -284,6 +298,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     document.querySelectorAll('#stat-chips .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.stat===S.stat))});
     document.querySelectorAll('.seg button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.side===S.side))});
     counts();
+    $('#target').disabled=(parseFloat(S.min)||0)>1;
     var items=visible(), html='', list=$('#list');
     if(S.tab==='best'){
       var good=items.filter(function(x){return x.e.ev>0}).sort(function(a,b){return b.e.ev-a.e.ev});
@@ -304,7 +319,8 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     }else{
       items.sort(function(a,b){return b.e.win-a.e.win||b.e.line-a.e.line});
       var min=parseFloat(S.min)||0;
-      $('#hint').textContent='Ranked by chance of landing. Type the line and odds your bookmaker shows'+(min?'; props with odds under '+min.toFixed(2)+' are hidden':'')+'.';
+      $('#hint').textContent=min>1?'Each line is the most likely one that still pays at least '+min.toFixed(2)+' (break-even). Type your bookmaker\'s line and odds; props with odds under '+min.toFixed(2)+' are hidden.':'Ranked by chance of landing. Type the line and odds your bookmaker shows.';
+      $('#target').disabled=min>1;
       html=items.slice(0,S.shown).map(function(x){return cardHTML(x.r,x.e,false)}).join('');
       if(!items.length)html='<div class="empty"><strong>No props match</strong>Try another game, stat or name.</div>';
       if(items.length>S.shown)html+='<button class="more" id="more">Show more ('+(items.length-S.shown)+' left)</button>';
