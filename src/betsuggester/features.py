@@ -30,7 +30,7 @@ def add_features(df: pd.DataFrame, stat: str = "pts") -> pd.DataFrame:
     df["per_min10"] = df["stat_avg10"] / df["min_avg10"].clip(lower=1)
 
     # How much does the opponent allow? Average of what opposing players scored vs them, last 15 games.
-    team_game = df.groupby(["opp", "date", "game_id"], as_index=False)[stat].sum().sort_values("date")
+    team_game = df.groupby(["opp", "date", "game_id"], as_index=False)[stat].sum(min_count=1).sort_values("date")
     team_game["opp_allowed15"] = team_game.groupby("opp")[stat].transform(
         lambda s: s.shift(1).rolling(15, min_periods=5).mean())
     df = df.merge(team_game[["opp", "game_id", "opp_allowed15"]], on=["opp", "game_id"], how="left")

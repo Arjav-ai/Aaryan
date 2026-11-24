@@ -51,3 +51,15 @@ class PropModel:
         n = 1.0 / self.alpha
         p = n / (n + mu)
         return stats.nbinom.sf(np.floor(line), n, p)
+
+
+def fit_calibrated(train, stat="pts") -> "PropModel":
+    """Fit on the older 75% of games, tune the spread on the newest 25% (so probabilities aren't
+    overconfident), then refit the regressor on everything."""
+    cut = train.date.quantile(0.75)
+    m = PropModel().fit(train[train.date < cut], stat)
+    m.tune_spread(train[train.date >= cut], stat)
+    alpha = m.alpha
+    m.reg.fit(train[FEATURES], train[stat])
+    m.alpha = alpha
+    return m

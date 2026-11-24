@@ -9,7 +9,7 @@ import pandas as pd
 from scipy import stats
 
 from .features import FEATURES, add_features, load_player_games
-from .model import LINE_OFFSETS, STATS, PropModel
+from .model import LINE_OFFSETS, STATS, fit_calibrated
 
 
 def run(split="2026-11-01", stat="pts"):
@@ -19,13 +19,7 @@ def run(split="2026-11-01", stat="pts"):
     train, test = df[df.date < split], df[df.date >= split]
     print(f"train {len(train)} rows, test {len(test)} rows (games from {split})")
 
-    # Fit on older games, tune the spread on the most recent 25% of training games, refit on all training.
-    cut = train.date.quantile(0.75)
-    m = PropModel().fit(train[train.date < cut], stat)
-    m.tune_spread(train[train.date >= cut], stat)
-    alpha = m.alpha
-    m.reg.fit(train[FEATURES], train[stat])
-    m.alpha = alpha
+    m = fit_calibrated(train, stat)
     mu = m.mean(test)
     y = test[stat].to_numpy()
     base = test["stat_avg10"].to_numpy()

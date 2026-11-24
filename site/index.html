@@ -1,0 +1,322 @@
+<title>Prop Finder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap">
+<style>
+/* Layout: one narrow column built for a phone. Sticky bar (title + two tabs), filters, then ranked prop cards. */
+:root{
+  --bg:#f5f6f9; --surface:#ffffff; --ink:#151821; --muted:#5a6376; --line:#dde1ea;
+  --accent:#3846c4; --accent-soft:#e8eafa; --on-accent:#ffffff;
+  --good:#17803d; --good-soft:#e2f4e8; --warn:#9a5a00; --warn-soft:#fdf0d6; --bad:#b32424; --bad-soft:#fbe3e3;
+  --font-body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-head:'Space Grotesk','Inter',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f121a; --surface:#171b27; --ink:#e8ebf3; --muted:#98a2b6; --line:#2a3042;
+  --accent:#95a1ff; --accent-soft:#232a4d; --on-accent:#0f121a;
+  --good:#4cc47c; --good-soft:#16301f; --warn:#e9b24c; --warn-soft:#352a10; --bad:#f27d7d; --bad-soft:#3b1c1c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f121a; --surface:#171b27; --ink:#e8ebf3; --muted:#98a2b6; --line:#2a3042;
+  --accent:#95a1ff; --accent-soft:#232a4d; --on-accent:#0f121a;
+  --good:#4cc47c; --good-soft:#16301f; --warn:#e9b24c; --warn-soft:#352a10; --bad:#f27d7d; --bad-soft:#3b1c1c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:640px;margin:0 auto}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-top:14px;border-bottom:1px solid var(--line)}
+.bar{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--font-head);font-size:22px;letter-spacing:-.01em;margin:0}
+#asof{color:var(--muted);font-size:12.5px}
+.tabs{display:flex;gap:4px;margin-top:10px}
+.tab{flex:1;padding:10px 8px;border:0;background:none;color:var(--muted);font-weight:600;border-bottom:3px solid transparent;cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab .n{display:inline-block;min-width:20px;margin-left:6px;padding:0 6px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-size:12px}
+.notice{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--warn-soft);color:var(--warn);font-size:13.5px}
+.controls{display:grid;gap:10px;margin:14px 0}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.chip{flex:none;padding:6px 12px;border:1px solid var(--line);border-radius:99px;background:var(--surface);cursor:pointer;font-size:13.5px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:grid;gap:4px;min-width:0}
+.field>span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.field input,.field select{width:100%;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{flex:1;padding:9px 6px;border:0;background:none;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
+.hint{color:var(--muted);font-size:13px;margin:0}
+#list{display:grid;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
+.card.dim{opacity:.62}
+.head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.who{min-width:0}
+.name{font-weight:600;font-size:16px;overflow-wrap:anywhere}
+.meta{color:var(--muted);font-size:12.5px}
+.pct{font-family:var(--font-head);font-weight:700;font-size:28px;line-height:1;text-align:right;font-variant-numeric:tabular-nums}
+.pct small{display:block;font-family:var(--font-body);font-weight:400;font-size:11px;color:var(--muted);margin-top:4px}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:11.5px;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-weight:500}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.inputs{display:grid;grid-template-columns:auto 1fr 1fr;gap:10px;align-items:end}
+.side{font-weight:600;padding-bottom:9px}
+.res{display:flex;gap:6px;flex-wrap:wrap;font-size:13px}
+.pill{padding:3px 9px;border-radius:99px;background:var(--bg);color:var(--muted);font-variant-numeric:tabular-nums}
+.pill.good{background:var(--good-soft);color:var(--good);font-weight:600}
+.pill.bad{background:var(--bad-soft);color:var(--bad);font-weight:600}
+.l5{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.l5 b{font-weight:600;min-width:26px;text-align:center;padding:2px 0;border-radius:6px;background:var(--bg);color:var(--ink);font-variant-numeric:tabular-nums}
+.l5 b.hit{background:var(--good-soft);color:var(--good)}
+.l5 b.miss{background:var(--bad-soft);color:var(--bad)}
+details summary{cursor:pointer;color:var(--muted);font-size:12.5px}
+details p{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.more{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;font-weight:500}
+.empty{padding:28px 8px;text-align:center;color:var(--muted)}
+.empty strong{display:block;color:var(--ink);margin-bottom:4px;font-size:16px}
+h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:10px 0 0}
+.about{margin-top:26px;padding-top:14px;border-top:1px solid var(--line)}
+.about summary{font-weight:600;color:var(--ink);font-size:14px}
+.about ul{padding-left:18px;color:var(--muted);font-size:13.5px}
+.about li{margin:6px 0}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="bar"><h1>Prop Finder</h1><span id="asof">Loading&#8230;</span></div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" id="tab-best" role="tab" data-tab="best" aria-selected="false">Best bets<span class="n" id="n-best">0</span></button>
+      <button class="tab" id="tab-probable" role="tab" data-tab="probable" aria-selected="true">Most probable</button>
+    </nav>
+  </header>
+
+  <div class="notice" id="stale" hidden></div>
+
+  <section class="controls" aria-label="Filters">
+    <div class="chips" id="stat-chips"></div>
+    <div class="grid2">
+      <label class="field"><span>Game</span><select id="game"></select></label>
+      <label class="field"><span>Player</span><input id="q" type="search" placeholder="Search name" autocomplete="off"></label>
+    </div>
+    <div class="grid2">
+      <label class="field"><span>Minimum odds</span><input id="min" type="number" inputmode="decimal" step="0.01" min="1" placeholder="e.g. 1.50"></label>
+      <label class="field"><span>Starting line</span>
+        <select id="target"><option value="0.7">70% chance</option><option value="0.8">80% chance</option><option value="0.9">90% chance</option></select></label>
+    </div>
+    <div class="seg" role="group" aria-label="Over or under">
+      <button id="side-over" data-side="over" aria-pressed="true">Over</button>
+      <button id="side-under" data-side="under" aria-pressed="false">Under</button>
+    </div>
+    <p class="hint" id="hint"></p>
+  </section>
+
+  <main id="list" aria-live="polite"><div class="empty">Loading predictions&#8230;</div></main>
+
+  <details class="about">
+    <summary>How accurate is this?</summary>
+    <ul>
+      <li><strong>The percentage</strong> is the model's chance that the player lands on your side of the line. Change the line to the one your bookmaker offers and it recalculates.</li>
+      <li><strong>Tested on past games</strong> the model had not seen: when it said 70&#8211;80% the prop hit about 73% of the time. Above 90% it hit between 86% and 94%, depending on the stat, so this page never shows more than 90%.</li>
+      <li><strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. A positive number means the odds pay more than the model thinks the bet is worth. It is an estimate, not a promise.</li>
+      <li><strong>Not covered:</strong> the effect of a teammate being out (flagged on the card, not priced in). Top scorers outscored the model by about 0.7 points in testing. Real bookmaker lines have not been back-tested. Only one and a half seasons of games are in the data.</li>
+      <li>This only suggests bets; it places nothing. Check what is legal where you are, and only stake money you can afford to lose.</li>
+    </ul>
+  </details>
+</div>
+
+<script>
+(function(){
+  var $=function(s){return document.querySelector(s)};
+  var LS='propfinder-v1', CAP=0.9, PAGE=40;
+  var STATS=['pts','reb','ast','fg3'];
+  var S={tab:'probable',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{}};
+  try{var saved=JSON.parse(localStorage.getItem(LS)||'{}');for(var k in saved)S[k]=saved[k];}catch(e){}
+  S.shown=PAGE;
+  function save(){try{localStorage.setItem(LS,JSON.stringify({tab:S.tab,stat:S.stat,min:S.min,target:S.target,side:S.side,rows:S.rows}));}catch(e){}}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+
+  /* Negative-binomial distribution: the same shape the model was calibrated with. */
+  var cache={};
+  function dist(mu,alpha){
+    var key=mu+'|'+alpha; if(cache[key])return cache[key];
+    var n=1/alpha,p=n/(n+mu),pmf=[Math.pow(p,n)],cdf=[pmf[0]];
+    for(var k=0;k<300&&cdf[k]<0.999999;k++){var nx=pmf[k]*(k+n)/(k+1)*(1-p);pmf.push(nx);cdf.push(cdf[k]+nx);}
+    return cache[key]={pmf:pmf,cdf:cdf};
+  }
+  function CDF(d,k){return k<0?0:(k>=d.cdf.length?1:d.cdf[k])}
+  function PMF(d,k){return (k<0||k>=d.pmf.length)?0:d.pmf[k]}
+  function probs(d,line,side){
+    var f=Math.floor(line),whole=(line===f);
+    if(side==='over')return{win:1-CDF(d,f),push:whole?PMF(d,f):0};
+    return{win:whole?CDF(d,f-1):CDF(d,f),push:whole?PMF(d,f):0};
+  }
+  function safeLine(d,side,t){
+    var k=0;
+    if(side==='over'){while(1-CDF(d,k+1)>=t)k++;}
+    else{while(CDF(d,k)<t)k++;}
+    return k+0.5;
+  }
+
+  var D=null,GAMES={},ROWS=[];
+  function stateKey(r){return r.base+'|'+S.side}
+  function evalRow(r){
+    var st=S.rows[stateKey(r)]||{};
+    var line=(st.line!=null)?st.line:safeLine(r.d,S.side,S.target);
+    var pr=probs(r.d,line,S.side);
+    var win=Math.min(pr.win,CAP), capped=pr.win>CAP;
+    var odds=(st.odds>1)?st.odds:null;
+    return{line:line,win:win,capped:capped,push:pr.push,odds:odds,
+      ev:odds?win*odds+pr.push-1:null, be:win>0?(1-pr.push)/win:null, userLine:st.line!=null};
+  }
+  function fmtOdds(x){return x==null?'\u2013':x.toFixed(2)}
+  function fmtLine(x){return Number.isInteger(x)?String(x):x.toFixed(1)}
+  function when(g){try{return new Date(g.start).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'})}catch(e){return g.date}}
+
+  function resHTML(r,e){
+    var h='<span class="pill">Break-even odds '+fmtOdds(e.be)+'</span>';
+    if(e.ev==null)return h+'<span class="pill">Type the odds to see the edge</span>';
+    var pc=Math.round(e.ev*100);
+    return h+'<span class="pill '+(e.ev>0?'good':'bad')+'">'+(e.ev>0?'Worth taking: ':'Not worth it: ')+(pc>0?'+':'')+pc+'% edge</span>';
+  }
+  function pctHTML(e){return (e.capped?'90%+':Math.round(e.win*100)+'%')+'<small>'+(S.side==='over'?'to go over':'to stay under')+'</small>'}
+  function l5HTML(r,e){
+    return '<span>Last 5</span>'+r.last5.map(function(v){
+      var c=''; if(v===e.line)c=''; else if(S.side==='over')c=v>e.line?'hit':'miss'; else c=v<e.line?'hit':'miss';
+      return '<b class="'+c+'">'+v+'</b>';}).join('');
+  }
+  function cardHTML(r,e,dim){
+    var p=r.p,g=GAMES[p.game],opp=p.opp,sk=stateKey(r);
+    var badges='';
+    if(p.status)badges+='<span class="badge warn">'+esc(p.status)+'</span>';
+    if(p.teammates_out&&p.teammates_out.length)badges+='<span class="badge warn">Teammate out</span>';
+    var notes='';
+    if(p.status&&p.note)notes+='<p><strong>'+esc(p.name)+':</strong> '+esc(p.note)+'</p>';
+    if(p.teammates_out&&p.teammates_out.length)notes+='<p><strong>Out on '+esc(p.team)+':</strong> '+p.teammates_out.map(esc).join(', ')+'. Their absence is not priced into the %; it often raises the others\' numbers.</p>';
+    notes+='<p>Model expects <strong>'+r.mu.toFixed(1)+'</strong> '+esc(r.unit)+'. Last-10-game average: '+r.avg10+'. Plays about '+Math.round(p.minutes)+' minutes.</p>';
+    return '<article class="card'+(dim?' dim':'')+'" data-key="'+esc(sk)+'" data-base="'+esc(r.base)+'">'+
+      '<div class="head"><div class="who"><div class="name">'+esc(p.name)+'</div>'+
+      '<div class="meta">'+esc(r.unit)+' \u00b7 '+esc(p.team)+(p.home?' vs ':' at ')+esc(opp)+' \u00b7 '+esc(when(g))+'</div></div>'+
+      '<div class="pct">'+pctHTML(e)+'</div></div>'+
+      (badges?'<div class="badges">'+badges+'</div>':'')+
+      '<div class="inputs"><div class="side">'+(S.side==='over'?'Over':'Under')+'</div>'+
+      '<label class="field"><span>Line</span><input data-field="line" type="number" inputmode="decimal" step="0.5" min="0" value="'+e.line+'"></label>'+
+      '<label class="field"><span>Odds</span><input data-field="odds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="e.g. 1.85" value="'+(e.odds||'')+'"></label></div>'+
+      '<div class="res">'+resHTML(r,e)+'</div>'+
+      '<div class="l5">'+l5HTML(r,e)+'</div>'+
+      '<details><summary>Details</summary>'+notes+'</details></article>';
+  }
+
+  function visible(){
+    var q=S.q.trim().toLowerCase(), min=parseFloat(S.min)||0;
+    var out=[];
+    ROWS.forEach(function(r){
+      if(S.stat!=='all'&&r.stat!==S.stat)return;
+      if(S.game!=='all'&&r.p.game!==S.game)return;
+      if(q&&r.p.name.toLowerCase().indexOf(q)<0)return;
+      var e=evalRow(r);
+      if(S.tab==='probable'&&e.odds&&min&&e.odds<min)return;   // odds below your minimum: hide
+      if(S.tab==='best'&&!e.odds)return;                        // best bets need your odds
+      out.push({r:r,e:e});
+    });
+    return out;
+  }
+  function counts(){
+    var good=0,all=0,min=parseFloat(S.min)||0;
+    ROWS.forEach(function(r){var e=evalRow(r);all++; if(e.ev!=null&&e.ev>0)good++;});
+    $('#n-best').textContent=good;
+  }
+
+  function render(){
+    var act=document.activeElement, keep=null;
+    if(act&&act.dataset&&act.dataset.field&&act.closest('.card')){
+      keep={key:act.closest('.card').dataset.key,field:act.dataset.field,pos:act.selectionStart};
+    }
+    document.querySelectorAll('.tab').forEach(function(b){b.setAttribute('aria-selected',String(b.dataset.tab===S.tab))});
+    document.querySelectorAll('#stat-chips .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.stat===S.stat))});
+    document.querySelectorAll('.seg button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.side===S.side))});
+    counts();
+    var items=visible(), html='', list=$('#list');
+    if(S.tab==='best'){
+      var good=items.filter(function(x){return x.e.ev>0}).sort(function(a,b){return b.e.ev-a.e.ev});
+      var bad=items.filter(function(x){return x.e.ev<=0}).sort(function(a,b){return b.e.ev-a.e.ev});
+      $('#hint').textContent='Ranked by edge. Add odds to any prop under "Most probable" and the worthwhile ones appear here.';
+      if(!items.length){
+        html='<div class="empty"><strong>No odds entered yet</strong>Open "Most probable", type your bookmaker\'s line and odds on a prop, and it is checked here.</div>';
+      }else{
+        if(!good.length)html+='<div class="empty"><strong>Nothing worth taking at these odds</strong>The model thinks the odds you entered pay too little for the risk.</div>';
+        html+=good.slice(0,S.shown).map(function(x){return cardHTML(x.r,x.e,false)}).join('');
+        if(bad.length)html+='<h3>Not worth it at these odds ('+bad.length+')</h3>'+bad.slice(0,S.shown).map(function(x){return cardHTML(x.r,x.e,true)}).join('');
+      }
+    }else{
+      items.sort(function(a,b){return b.e.win-a.e.win||b.e.line-a.e.line});
+      var min=parseFloat(S.min)||0;
+      $('#hint').textContent='Ranked by chance of landing. Type the line and odds your bookmaker shows'+(min?'; props with odds under '+min.toFixed(2)+' are hidden':'')+'.';
+      html=items.slice(0,S.shown).map(function(x){return cardHTML(x.r,x.e,false)}).join('');
+      if(!items.length)html='<div class="empty"><strong>No props match</strong>Try another game, stat or name.</div>';
+      if(items.length>S.shown)html+='<button class="more" id="more">Show more ('+(items.length-S.shown)+' left)</button>';
+    }
+    list.innerHTML=html;
+    if(keep){
+      var cards=list.querySelectorAll('.card');
+      for(var i=0;i<cards.length;i++){
+        if(cards[i].dataset.key===keep.key){var el=cards[i].querySelector('[data-field="'+keep.field+'"]');
+          if(el){el.focus();try{el.setSelectionRange(keep.pos,keep.pos)}catch(e){}} break;}
+      }
+    }
+  }
+
+  var timer=null;
+  function later(){clearTimeout(timer);timer=setTimeout(render,700)}
+
+  document.addEventListener('click',function(ev){
+    var t=ev.target.closest('button'); if(!t)return;
+    if(t.dataset.tab){S.tab=t.dataset.tab;S.shown=PAGE;save();render();window.scrollTo(0,0);}
+    else if(t.dataset.stat){S.stat=t.dataset.stat;S.shown=PAGE;save();render();}
+    else if(t.dataset.side){S.side=t.dataset.side;save();render();}
+    else if(t.id==='more'){S.shown+=PAGE;render();}
+  });
+  $('#game').addEventListener('change',function(e){S.game=e.target.value;S.shown=PAGE;render();});
+  $('#q').addEventListener('input',function(e){S.q=e.target.value;S.shown=PAGE;later();});
+  $('#min').addEventListener('input',function(e){S.min=e.target.value;save();later();});
+  $('#target').addEventListener('change',function(e){S.target=parseFloat(e.target.value);save();render();});
+  $('#list').addEventListener('input',function(ev){
+    var inp=ev.target; if(!inp.dataset||!inp.dataset.field)return;
+    var card=inp.closest('.card'), sk=card.dataset.key;
+    var v=parseFloat(String(inp.value).replace(',','.'));
+    var st=S.rows[sk]||(S.rows[sk]={});
+    if(isNaN(v)||v<=0)delete st[inp.dataset.field]; else st[inp.dataset.field]=v;
+    if(st.line==null&&st.odds==null)delete S.rows[sk];
+    save();
+    var r=ROWS.filter(function(x){return x.base===card.dataset.base})[0], e=evalRow(r);
+    card.querySelector('.pct').innerHTML=pctHTML(e);
+    card.querySelector('.res').innerHTML=resHTML(r,e);
+    card.querySelector('.l5').innerHTML=l5HTML(r,e);
+    later();
+  });
+
+  function init(d){
+    D=d; d.games.forEach(function(g){GAMES[g.id]=g});
+    var teamOpp={};
+    d.players.forEach(function(p){
+      STATS.forEach(function(s){
+        var x=p.stats[s]; if(!x)return;
+        ROWS.push({base:p.game+'|'+p.name+'|'+s,p:p,stat:s,unit:d.labels[s],mu:x.mu,avg10:x.avg10,last5:x.last5,d:dist(x.mu,x.alpha)});
+      });
+    });
+    var chips='<button class="chip" data-stat="all" aria-pressed="true">All</button>'+STATS.map(function(s){return '<button class="chip" data-stat="'+s+'" aria-pressed="false">'+esc(d.labels[s])+'</button>'}).join('');
+    $('#stat-chips').innerHTML=chips;
+    $('#game').innerHTML='<option value="all">All games</option>'+d.games.map(function(g){return '<option value="'+esc(g.id)+'">'+esc(g.away)+' at '+esc(g.home)+' \u00b7 '+esc(when(g))+'</option>'}).join('');
+    $('#game').value=S.game;
+    $('#min').value=S.min; $('#target').value=String(S.target);
+    var gen=new Date(d.generated_at);
+    $('#asof').textContent='Games to '+new Date(d.data_through+'T12:00:00').toLocaleDateString([],{day:'numeric',month:'short'})+' \u00b7 updated '+gen.toLocaleString([],{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
+    var age=(Date.now()-gen.getTime())/36e5;
+    if(age>30){var days=Math.floor(age/24);var n=$('#stale');n.hidden=false;n.textContent='These predictions are about '+(days>=1?days+' day'+(days>1?'s':''):Math.round(age)+' hours')+' old. Ask Claude to refresh them before you rely on them: injuries and lineups change daily.';}
+    render();
+  }
+  fetch('predictions.json').then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(init).catch(function(){
+    $('#list').innerHTML='<div class="empty"><strong>Could not load the predictions</strong>Reload the page. If it keeps failing, ask Claude to republish it.</div>';
+    $('#asof').textContent='';
+  });
+})();
+</script>
