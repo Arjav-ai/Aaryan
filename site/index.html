@@ -68,6 +68,16 @@ h1{font-family:var(--font-head);font-size:22px;letter-spacing:-.01em;margin:0}
 .l5 b{font-weight:600;min-width:26px;text-align:center;padding:2px 0;border-radius:6px;background:var(--bg);color:var(--ink);font-variant-numeric:tabular-nums}
 .l5 b.hit{background:var(--good-soft);color:var(--good)}
 .l5 b.miss{background:var(--bad-soft);color:var(--bad)}
+.srows{display:grid;gap:12px}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) 72px 72px;gap:8px 10px;align-items:end;padding-top:12px;border-top:1px solid var(--line)}
+.srow:first-child{border-top:0;padding-top:0}
+.spred{display:grid;gap:1px;min-width:0}
+.spred .slabel{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.spred b{font-family:var(--font-head);font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums}
+.spred .range{font-size:12px;color:var(--muted)}
+.sres{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;font-size:13px}
+.srow .field input{padding:7px 8px}
+.gh{color:var(--ink);font-family:var(--font-head);font-size:15px;text-transform:none;letter-spacing:0;margin:14px 0 0}
 details summary{cursor:pointer;color:var(--muted);font-size:12.5px}
 details p{margin:6px 0 0;font-size:13px;color:var(--muted)}
 .more{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;font-weight:500}
@@ -157,11 +167,13 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     return k+0.5;
   }
 
-  var D=null,GAMES={},ROWS=[];
+  var D=null,GAMES={},ROWS=[],ROWMAP={};
+  function qtile(d,q){var k=0;while(CDF(d,k)<q)k++;return k}
+  function typicalLine(mu){return Math.floor(mu)+0.5}
   function stateKey(r){return r.base+'|'+S.side}
-  function evalRow(r){
+  function evalRow(r,typ){
     var st=S.rows[stateKey(r)]||{};
-    var line=(st.line!=null)?st.line:safeLine(r.d,S.side,S.target);
+    var line=(st.line!=null)?st.line:(typ?typicalLine(r.mu):safeLine(r.d,S.side,S.target));
     var pr=probs(r.d,line,S.side);
     var win=Math.min(pr.win,CAP), capped=pr.win>CAP;
     var odds=(st.odds>1)?st.odds:null;
@@ -206,6 +218,43 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       '<details><summary>Details</summary>'+notes+'</details></article>';
   }
 
+  function injNotes(p){
+    var n='';
+    if(p.status&&p.note)n+='<p><strong>'+esc(p.name)+':</strong> '+esc(p.note)+'</p>';
+    if(p.teammates_out&&p.teammates_out.length)n+='<p><strong>Out on '+esc(p.team)+':</strong> '+p.teammates_out.map(esc).join(', ')+'. Their absence is not priced into the numbers; it often raises the others\' output.</p>';
+    return n;
+  }
+  function sresHTML(r,e){
+    var h='<span class="pill">'+(e.capped?'90%+':Math.round(e.win*100)+'%')+' '+(S.side==='over'?'over':'under')+' '+fmtLine(e.line)+'</span><span class="pill">Break-even '+fmtOdds(e.be)+'</span>';
+    if(e.ev!=null){var pc=Math.round(e.ev*100);h+='<span class="pill '+(e.ev>0?'good':'bad')+'">'+(e.ev>0?'Worth taking: ':'Not worth it: ')+(pc>0?'+':'')+pc+'% edge</span>';}
+    return h;
+  }
+  function srowHTML(r,e){
+    var lo=qtile(r.d,0.1),hi=qtile(r.d,0.9);
+    return '<div class="srow" data-key="'+esc(stateKey(r))+'" data-base="'+esc(r.base)+'"><div class="spred"><span class="slabel">'+esc(r.unit)+'</span><b>'+r.mu.toFixed(1)+'</b><span class="range">likely '+lo+'\u2013'+hi+'</span></div>'+
+      '<label class="field"><span>Line</span><input data-field="line" type="number" inputmode="decimal" step="0.5" min="0" value="'+e.line+'"></label>'+
+      '<label class="field"><span>Odds</span><input data-field="odds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="1.85" value="'+(e.odds||'')+'"></label>'+
+      '<div class="sres">'+sresHTML(r,e)+'</div></div>';
+  }
+  function playerCardHTML(p){
+    var g=GAMES[p.game],badges='';
+    if(p.status)badges+='<span class="badge warn">'+esc(p.status)+'</span>';
+    if(p.teammates_out&&p.teammates_out.length)badges+='<span class="badge warn">Teammate out</span>';
+    var rows=STATS.filter(function(s){return p.stats[s]&&(S.stat==='all'||S.stat===s)}).map(function(s){
+      var r=ROWMAP[p.game+'|'+p.name+'|'+s];return srowHTML(r,evalRow(r,true));}).join('');
+    var notes=injNotes(p);
+    return '<article class="card"><div class="head"><div class="who"><div class="name">'+esc(p.name)+'</div><div class="meta">'+esc(p.team)+(p.home?' vs ':' at ')+esc(p.opp)+' \u00b7 about '+Math.round(p.minutes)+' min</div></div></div>'+
+      (badges?'<div class="badges">'+badges+'</div>':'')+'<div class="srows">'+rows+'</div>'+(notes?'<details><summary>Injury notes</summary>'+notes+'</details>':'')+'</article>';
+  }
+  function playersByGame(){
+    var q=S.q.trim().toLowerCase(),out=[];
+    D.games.forEach(function(g){
+      if(S.game!=='all'&&g.id!==S.game)return;
+      var ps=D.players.filter(function(p){return p.game===g.id&&(!q||p.name.toLowerCase().indexOf(q)>=0)&&STATS.some(function(s){return p.stats[s]&&(S.stat==='all'||S.stat===s)})});
+      if(ps.length)out.push({g:g,ps:ps});
+    });
+    return out;
+  }
   function visible(){
     var q=S.q.trim().toLowerCase(), min=parseFloat(S.min)||0;
     var out=[];
@@ -228,8 +277,8 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 
   function render(){
     var act=document.activeElement, keep=null;
-    if(act&&act.dataset&&act.dataset.field&&act.closest('.card')){
-      keep={key:act.closest('.card').dataset.key,field:act.dataset.field,pos:act.selectionStart};
+    if(act&&act.dataset&&act.dataset.field&&act.closest('[data-key]')){
+      keep={key:act.closest('[data-key]').dataset.key,field:act.dataset.field,pos:act.selectionStart};
     }
     document.querySelectorAll('.tab').forEach(function(b){b.setAttribute('aria-selected',String(b.dataset.tab===S.tab))});
     document.querySelectorAll('#stat-chips .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.stat===S.stat))});
@@ -239,14 +288,19 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     if(S.tab==='best'){
       var good=items.filter(function(x){return x.e.ev>0}).sort(function(a,b){return b.e.ev-a.e.ev});
       var bad=items.filter(function(x){return x.e.ev<=0}).sort(function(a,b){return b.e.ev-a.e.ev});
-      $('#hint').textContent='Ranked by edge. Add odds to any prop under "Most probable" and the worthwhile ones appear here.';
-      if(!items.length){
-        html='<div class="empty"><strong>No odds entered yet</strong>Open "Most probable", type your bookmaker\'s line and odds on a prop, and it is checked here.</div>';
-      }else{
-        if(!good.length)html+='<div class="empty"><strong>Nothing worth taking at these odds</strong>The model thinks the odds you entered pay too little for the risk.</div>';
-        html+=good.slice(0,S.shown).map(function(x){return cardHTML(x.r,x.e,false)}).join('');
-        if(bad.length)html+='<h3>Not worth it at these odds ('+bad.length+')</h3>'+bad.slice(0,S.shown).map(function(x){return cardHTML(x.r,x.e,true)}).join('');
-      }
+      $('#hint').textContent='Every player in each game, with what the model predicts. "Likely" is the range he lands in 80% of games. Type your bookmaker\'s line and odds and the edge appears; worthwhile bets move to the top.';
+      if(good.length)html+='<h3>Worth taking ('+good.length+')</h3>'+good.map(function(x){return cardHTML(x.r,x.e,false)}).join('');
+      if(bad.length)html+='<h3>Not worth it at your odds ('+bad.length+')</h3>'+bad.map(function(x){return cardHTML(x.r,x.e,true)}).join('');
+      var groups=playersByGame(),total=0,shown=0,more=false;
+      groups.forEach(function(gr){total+=gr.ps.length});
+      html+='<h3>All players ('+total+')</h3>';
+      if(!total)html+='<div class="empty"><strong>No players match</strong>Try another game, stat or name.</div>';
+      groups.forEach(function(gr){
+        if(shown>=S.shown){more=true;return;}
+        var slice=gr.ps.slice(0,S.shown-shown); shown+=slice.length; if(slice.length<gr.ps.length)more=true;
+        html+='<h3 class="gh">'+esc(gr.g.away)+' at '+esc(gr.g.home)+' \u00b7 '+esc(when(gr.g))+'</h3>'+slice.map(playerCardHTML).join('');
+      });
+      if(more)html+='<button class="more" id="more">Show more players ('+(total-shown)+' left)</button>';
     }else{
       items.sort(function(a,b){return b.e.win-a.e.win||b.e.line-a.e.line});
       var min=parseFloat(S.min)||0;
@@ -257,7 +311,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     }
     list.innerHTML=html;
     if(keep){
-      var cards=list.querySelectorAll('.card');
+      var cards=list.querySelectorAll('[data-key]');
       for(var i=0;i<cards.length;i++){
         if(cards[i].dataset.key===keep.key){var el=cards[i].querySelector('[data-field="'+keep.field+'"]');
           if(el){el.focus();try{el.setSelectionRange(keep.pos,keep.pos)}catch(e){}} break;}
@@ -281,16 +335,18 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   $('#target').addEventListener('change',function(e){S.target=parseFloat(e.target.value);save();render();});
   $('#list').addEventListener('input',function(ev){
     var inp=ev.target; if(!inp.dataset||!inp.dataset.field)return;
-    var card=inp.closest('.card'), sk=card.dataset.key;
+    var host=inp.closest('[data-key]'), sk=host.dataset.key, r=ROWMAP[host.dataset.base];
+    var typ=host.classList.contains('srow');
+    var shownLine=evalRow(r,typ).line;
     var v=parseFloat(String(inp.value).replace(',','.'));
     var st=S.rows[sk]||(S.rows[sk]={});
     if(isNaN(v)||v<=0)delete st[inp.dataset.field]; else st[inp.dataset.field]=v;
+    if(st.odds!=null&&st.line==null)st.line=shownLine;   // odds belong to the line you saw when you typed them
     if(st.line==null&&st.odds==null)delete S.rows[sk];
     save();
-    var r=ROWS.filter(function(x){return x.base===card.dataset.base})[0], e=evalRow(r);
-    card.querySelector('.pct').innerHTML=pctHTML(e);
-    card.querySelector('.res').innerHTML=resHTML(r,e);
-    card.querySelector('.l5').innerHTML=l5HTML(r,e);
+    var e=evalRow(r,typ);
+    if(typ){host.querySelector('.sres').innerHTML=sresHTML(r,e);}
+    else{host.querySelector('.pct').innerHTML=pctHTML(e);host.querySelector('.res').innerHTML=resHTML(r,e);host.querySelector('.l5').innerHTML=l5HTML(r,e);}
     later();
   });
 
@@ -300,7 +356,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     d.players.forEach(function(p){
       STATS.forEach(function(s){
         var x=p.stats[s]; if(!x)return;
-        ROWS.push({base:p.game+'|'+p.name+'|'+s,p:p,stat:s,unit:d.labels[s],mu:x.mu,avg10:x.avg10,last5:x.last5,d:dist(x.mu,x.alpha)});
+        var row={base:p.game+'|'+p.name+'|'+s,p:p,stat:s,unit:d.labels[s],mu:x.mu,avg10:x.avg10,last5:x.last5,d:dist(x.mu,x.alpha)};ROWS.push(row);ROWMAP[row.base]=row;
       });
     });
     var chips='<button class="chip" data-stat="all" aria-pressed="true">All</button>'+STATS.map(function(s){return '<button class="chip" data-stat="'+s+'" aria-pressed="false">'+esc(d.labels[s])+'</button>'}).join('');
