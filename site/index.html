@@ -163,8 +163,8 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       '<strong>Not covered:</strong> the effect of a teammate being out (flagged on the card, not priced in). Top scorers outscored the model by about 0.7 points in testing. Real bookmaker lines have not been back-tested. Only one and a half seasons of games are in the data.']},
     football:{label:'Football',file:'predictions_soccer.json',tabs:['matches','best','probable','outrights'],about:[
       '<strong>Matches:</strong> tested on 1,400 matches the model had not seen, its win/draw/loss probabilities scored clearly better than a guess based on league averages, and home-win and handicap chances matched what happened. <strong>Total goals is the weakest market</strong> (it said 53% for over 2.5 goals; 56% happened).',
-      '<strong>Players:</strong> chances assume the player plays. Line-ups come out about an hour before kick-off, so check he starts. Shots and shots on target were well calibrated over 28,000 test player-games; goals and assists are rare events, so those are rougher.',
-      '<strong>Outrights</strong> come from simulating the rest of each league 20,000 times. The model uses last season too, so it can rate a team above one with more points this season. Test runs on last season were reasonable but small, so treat big favourites as less certain than shown. Nothing is shown above 90%.',
+      '<strong>Players:</strong> chances assume the player plays. Line-ups come out about an hour before kick-off, so check he starts. Shots and shots on target were well calibrated over 28,000 test player-games; goals and assists are rare events, so those are rougher, and goals or assists lines above 0.5 were not tested.',
+      '<strong>Outrights</strong> come from simulating the rest of each league 20,000 times. For the Champions League only the league phase is simulated (top 8, playoff, out); trophy chances are held back until the knockout draw has been made. The model uses last season too, so it can rate a team above one with more points this season. Test runs on last season were reasonable but small, so treat big favourites as less certain than shown. Nothing is shown above 90%.',
       '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. It is an estimate, not a promise. Only suggestions: this page places nothing. Check what is legal where you are, and only stake money you can afford to lose.']}
   };
   var TABNAME={matches:'Matches',best:'Best bets',probable:'Most probable',outrights:'Outrights'};
@@ -367,7 +367,8 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   }
 
   /* ---------- football outrights ---------- */
-  var OM={title:'Win the league',top4:'Top 4',relegated:'Relegated'};
+  function mkts(lg){return cur.d.outrights[lg].markets}
+  function mkLabel(lg,k){var m=mkts(lg).filter(function(x){return x.key===k})[0];return m?m.label:k}
   function oKey(lg,tid,mk){return 'O|'+lg+'|'+tid+'|'+mk}
   function oEval(lg,t,mk){var st=S.rows[oKey(lg,t.team_id,mk)]||{};var odds=st.odds>1?st.odds:null,x=money(t[mk],0,odds);return{win:x.win,capped:x.capped,odds:odds,ev:x.ev,be:x.be}}
   function oRowHTML(lg,t,mk){
@@ -378,12 +379,13 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   }
   function outrightsHTML(){
     var O=cur.d.outrights, lgs=Object.keys(O); if(!S.ol||!O[S.ol])S.ol=lgs[0];
-    var q=S.q.trim().toLowerCase();
+    var ms=mkts(S.ol); if(!ms.some(function(m){return m.key===S.om}))S.om=ms[0].key;
     var bar='<div class="obar">'+lgs.map(function(l){return '<button class="chip" data-ol="'+l+'" aria-pressed="'+(l===S.ol)+'">'+esc(O[l].name)+'</button>'}).join('')+'</div>'+
-      '<div class="seg" role="group" aria-label="Market">'+Object.keys(OM).map(function(k){return '<button data-om="'+k+'" aria-pressed="'+(k===S.om)+'">'+OM[k]+'</button>'}).join('')+'</div>';
+      '<div class="seg" role="group" aria-label="Market">'+ms.map(function(m){return '<button data-om="'+m.key+'" aria-pressed="'+(m.key===S.om)+'">'+esc(m.label)+'</button>'}).join('')+'</div>';
     var teams=O[S.ol].teams.slice().sort(function(a,b){return b[S.om]-a[S.om]});
-    var note=S.om==='relegated'?'Bottom '+O[S.ol].relegated_places+' go down.':S.om==='top4'?'Top 4 finish.':'League winner.';
-    return bar+'<p class="hint">'+note+' Simulated 20,000 times from the current table. Type the odds you are offered to see the edge.</p><div class="card">'+
+    var note=ms.filter(function(m){return m.key===S.om})[0].note;
+    return bar+'<p class="hint">'+esc(note)+' Simulated 20,000 times from the current table. Type the odds you are offered to see the edge.</p>'+
+      (O[S.ol].pending?'<div class="notice">'+esc(O[S.ol].pending)+'</div>':'')+'<div class="card">'+
       teams.map(function(t){return oRowHTML(S.ol,t,S.om)}).join('')+'</div>';
   }
 
@@ -402,7 +404,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
         var lg=cur.d.outrights[p[1]]; if(!lg)return;
         var t=lg.teams.filter(function(t){return t.team_id===p[2]})[0]; if(!t)return;
         var x2=money(t[p[3]],0,st.odds);
-        out.push({ev:x2.ev,html:'<article class="card'+(x2.ev>0?'':' dim')+'"><div class="head"><div class="who"><div class="name">'+esc(t.team)+' \u00b7 '+OM[p[3]].toLowerCase()+'</div><div class="meta">'+esc(lg.name)+'</div></div><div class="pct">'+(x2.capped?'90%+':Math.round(x2.win*100)+'%')+'<small>chance</small></div></div><div class="res"><span class="pill">Your odds '+fmtOdds(st.odds)+'</span><span class="pill">Break-even '+fmtOdds(x2.be)+'</span>'+edgePill(x2.ev)+'</div><div class="meta">Change it in Outrights.</div></article>'});
+        out.push({ev:x2.ev,html:'<article class="card'+(x2.ev>0?'':' dim')+'"><div class="head"><div class="who"><div class="name">'+esc(t.team)+' \u00b7 '+esc(mkLabel(p[1],p[3]).toLowerCase())+'</div><div class="meta">'+esc(lg.name)+'</div></div><div class="pct">'+(x2.capped?'90%+':Math.round(x2.win*100)+'%')+'<small>chance</small></div></div><div class="res"><span class="pill">Your odds '+fmtOdds(st.odds)+'</span><span class="pill">Break-even '+fmtOdds(x2.be)+'</span>'+edgePill(x2.ev)+'</div><div class="meta">Change it in Outrights.</div></article>'});
       }
     });
     return out;

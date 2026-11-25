@@ -19,14 +19,15 @@ const bad = async p => { const t = await p.locator('body').innerText(); const m 
   // ---- matches ----
   await p.click('button[data-tab=matches]'); await p.waitForSelector('.mk');
   const nm = await p.locator('article.card').count();
-  ok('57 matches listed (40 + show more)', nm===40, String(nm)); await p.click('#more'); ok('Show more matches', (await p.locator('article.card').count())===57);
+  const nGames = JSON.parse(fs.readFileSync('/home/user/aaryan/data/predictions_soccer.json','utf8')).games.length;
+  ok(`${nGames} matches listed (40 + show more)`, nm===Math.min(40,nGames), String(nm)); await p.click('#more'); ok('Show more matches', (await p.locator('article.card').count())===nGames);
   ok('prop-only controls hidden on Matches', !(await p.locator('#stat-chips').isVisible()) && !(await p.locator('#g-min').isVisible()) && await p.locator('#g-game').isVisible());
   // result probabilities add to ~100%
   const sums = await p.locator('article.card').evaluateAll(cs=>cs.map(c=>[...c.querySelectorAll('.mk')[0].querySelectorAll('.opct')].map(x=>parseInt(x.textContent)).reduce((a,b)=>a+b,0)));
   ok('win+draw+loss add to ~100% for every match', sums.every(v=>v>=98&&v<=102), 'min '+Math.min(...sums)+' max '+Math.max(...sums));
   // game filter + search
   const gopts = await p.locator('#game option').evaluateAll(o=>o.map(x=>[x.value,x.textContent]));
-  ok('game dropdown: 57 + All', gopts.length===58, String(gopts.length));
+  ok(`game dropdown: ${nGames} + All`, gopts.length===nGames+1, String(gopts.length));
   await p.selectOption('#game', gopts[1][0]); ok('game filter shows one match', (await p.locator('article.card').count())===1);
   await p.selectOption('#game','all'); await p.fill('#q','arsenal'); await p.waitForTimeout(900);
   const arsN = await p.locator('article.card .name').allInnerTexts(); ok('team search finds Arsenal match(es)', arsN.length>=1 && arsN.every(n=>/Arsenal/i.test(n)), arsN.join(','));
@@ -67,15 +68,23 @@ const bad = async p => { const t = await p.locator('body').innerText(); const m 
   await p.click('button[data-tab=outrights]'); await p.waitForSelector('.orow');
   ok('controls hidden on Outrights', !(await p.locator('#g-game').isVisible()) && !(await p.locator('#stat-chips').isVisible()));
   const out = JSON.parse(fs.readFileSync('/home/user/aaryan/data/predictions_soccer.json','utf8')).outrights;
+  ok('Outrights has 6 competitions incl. Champions League', (await p.locator('.obar .chip').count())===6 && /Champions League/.test(await p.locator('.obar').innerText()), (await p.locator('.obar').innerText()).replace(/\n/g,','));
   for (const [lg,o] of Object.entries(out)) {
     await p.click(`button[data-ol="${lg}"]`);
-    for (const [mk,exp] of [['title',1],['top4',4],['relegated',o.relegated_places]]) {
-      await p.click(`button[data-om=${mk}]`);
-      const pcts = (await p.locator('.orow .opct').allInnerTexts()).map(t=>t==='90%+'?90:(t==='<1%'?0:parseInt(t)));
-      const sum = pcts.reduce((a,b)=>a+b,0); const nteams = pcts.length;
-      ok(`${o.name} ${mk}: ${nteams} teams, sorted, probabilities add to ~${exp*100}%`, nteams===o.teams.length && pcts.every((v,i)=>i===0||pcts[i-1]>=v) && Math.abs(sum-exp*100)<=Math.max(8,exp*100*0.08), `sum=${sum}`);
+    const labels = await p.locator('.seg button[data-om]').allInnerTexts();
+    ok(`${o.name}: market buttons match data`, labels.join('|')===o.markets.map(m=>m.label).join('|'), labels.join('|'));
+    for (const m of o.markets) {
+      await p.click(`button[data-om=${m.key}]`);
+      const shown = (await p.locator('.orow .opct').allInnerTexts()).map(t=>t==='90%+'?90:(t==='<1%'?0:parseInt(t)));
+      const want = o.teams.map(t=>Math.min(t[m.key],0.9)).sort((a,b)=>b-a).map(v=>v<0.005?0:Math.round(v*100));
+      const same = shown.length===want.length && shown.every((v,i)=>Math.abs(v-want[i])<=1) && shown.every((v,i)=>i===0||shown[i-1]>=v);
+      ok(`${o.name} / ${m.label}: ${shown.length} teams, sorted, every % matches the data`, same, same?'':`page ${shown.slice(0,5)} vs data ${want.slice(0,5)}`);
     }
   }
+  await p.click('button[data-ol="uefa.champions"]');
+  ok('Champions League says trophy chances come after the knockout draw', /after the knockout draw/.test(await p.locator('#list').innerText()));
+  await p.click('button[data-ol="eng.1"]'); ok('no draw notice on domestic leagues', !/knockout draw/.test(await p.locator('#list').innerText()));
+  await p.click('button[data-ol="uefa.champions"]'); await p.click('button[data-om=top8]');
   const row = p.locator('.orow').first(); await row.locator('[data-field=oodds]').fill('2.5'); await p.waitForTimeout(300);
   ok('outright odds show an edge', /edge/.test(await row.locator('.oedge').innerText()), await row.locator('.oedge').innerText());
   await p.waitForTimeout(900); await p.click('button[data-tab=best]'); await p.waitForSelector('h3');

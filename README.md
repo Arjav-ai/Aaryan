@@ -50,4 +50,9 @@ PYTHONPATH=src python -m betsuggester.soccer_backtest          # match model on 
 PYTHONPATH=src python -m betsuggester.soccer_props 2026-02-01  # player props on unseen matches
 PYTHONPATH=src python -m betsuggester.soccer_retro 2025-11-24  # league simulation vs how last season ended
 ```
-Browser tests: `tests/e2e/nba.test.js` (47 checks) and `tests/e2e/football.test.js` (51 checks).
+Browser tests: `tests/e2e/nba.test.js` (47 checks) and `tests/e2e/football.test.js` (63 checks).
+
+### Champions League outrights
+League phase only (top 8 / playoff 9-24 / out 25-36). Trophy chances are deliberately NOT shown until the knockout
+draw has been made: `soccer_predict.knockout_draw_done()` checks ESPN for knockout fixtures between named teams, and
+the page says so until then. Retro test: `python -m betsuggester.soccer_retro cl 2025-11-26`.
