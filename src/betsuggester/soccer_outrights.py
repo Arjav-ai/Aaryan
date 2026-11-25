@@ -92,12 +92,24 @@ def simulate(league, model, matches, season_year, rng=None, n=N_SIMS, sd=STRENGT
                          domestic_bands(len(tab), LEAGUES[league][1]), rng, n, sd)
 
 
-def simulate_champions_league(model, matches, season_year, rng=None, n=N_SIMS):
-    """League phase only: top 8 (straight to last 16), playoff places 9-24, eliminated 25-36.
+# The three European cups all use a 36-team league phase: top 8 skip the playoff, 9-24 play off, 25-36 are out.
+# Name and the last day of the league phase (anything after that is a knockout match and must not enter the table).
+CUPS = {"uefa.champions": ("Champions League", "2027-01-28"),
+        "uefa.europa": ("Europa League", "2027-01-29"),
+        "uefa.europa.conf": ("Conference League", "2026-12-18")}
+
+
+def simulate_cup(league, model, matches, season_year, rng=None, n=N_SIMS):
+    """League phase only: chance of finishing top 8 / playoff places 9-24 / eliminated 25-36.
     Trophy chances are NOT simulated: they depend on knockout draws that have not happened yet."""
     rng = rng or np.random.default_rng(5)
-    cur = matches[(matches.league == "uefa.champions") & (matches.season == season_year) & (matches.date <= CL_LEAGUE_PHASE_END)]
+    last_day = CUPS[league][1]
+    cur = matches[(matches.league == league) & (matches.season == season_year) & (matches.date <= last_day)]
     months = pd.period_range(pd.Timestamp.today(), periods=4, freq="M").strftime("%Y%m")
-    fixtures = [f for f in remaining_fixtures("uefa.champions", season_year, months) if f["date"] <= CL_LEAGUE_PHASE_END]
+    fixtures = [f for f in remaining_fixtures(league, season_year, months) if f["date"] <= last_day]
     tab = table(cur)
     return simulate_core(model, tab, fixtures, CL_BANDS, rng, n, team_sd(tab, matches, CL_SD, CL_NEW_SD))
+
+
+def simulate_champions_league(model, matches, season_year, rng=None, n=N_SIMS):
+    return simulate_cup("uefa.champions", model, matches, season_year, rng, n)

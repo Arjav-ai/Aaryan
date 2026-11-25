@@ -50,6 +50,10 @@ const outsOf = (g, home) => [...new Set(DATA.players.filter(p => p.game===g.id &
   ok(`shows every player for the game (${plist.length})`, names.length===plist.length, String(names.length));
   ok('both teams under their own logo heading', (await p.locator('h3.tg').count())===2);
   ok('each player has 4 stat rows (points, rebounds, assists, threes)', (await p.locator('.srow').count())===plist.length*4);
+  ok('every prop row shows its last 5 games and how many beat the line', (await p.locator('.srow .srl5 b').count())===plist.length*4*5 && /\d of 5 (over|under) /.test(await p.locator('.srow .srl5').first().innerText()), (await p.locator('.srow .srl5').first().innerText()).replace(/\n/g,' '));
+  { const r = await p.evaluate(()=>{ const row=document.querySelector('.srow'); return { name: row.closest('article.card').querySelector('.name').textContent, label: row.querySelector('.slabel').textContent, vals: [...row.querySelectorAll('.srl5 b')].map(x=>+x.textContent) }; });
+    const key = {Points:'pts',Rebounds:'reb',Assists:'ast',Threes:'fg3'}[r.label]; const want = plist.find(x=>x.name===r.name).stats[key].last5;
+    ok(`the last-5 values for ${r.name} (${r.label}) are the ones in the data`, JSON.stringify(r.vals)===JSON.stringify(want), JSON.stringify(r.vals)+' vs '+JSON.stringify(want)); }
   const order = await p.locator('h3.tg').allInnerTexts(); ok('away team group comes first', order[0].startsWith(g.away_name) && order[1].startsWith(g.home_name), order.join(' | '));
   const minsAway = await p.evaluate(()=>{ const hs=[...document.querySelectorAll('#list > *')]; const out=[]; let cur=null; for (const el of hs){ if (el.matches('h3.tg')) { cur=[]; out.push(cur);} else if (cur && el.matches('article.card')) { const m=/about (\d+) min/.exec(el.querySelector('.meta').innerText); cur.push(m?+m[1]:0);} } return out; });
   ok('players are ordered by minutes within each team', minsAway.every(a=>a.every((v,i)=>i===0||a[i-1]>=v)), JSON.stringify(minsAway.map(a=>a.slice(0,4))));

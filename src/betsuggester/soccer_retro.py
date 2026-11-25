@@ -41,14 +41,14 @@ def run(cutoff="2025-11-24", sds=(0.0, 0.1, 0.15, 0.2, 0.3), season=2025, n=4000
     return out
 
 
-def run_champions_league(cutoff="2025-11-26", season=2025, last_day="2026-01-28", n=6000):
+def run_champions_league(cutoff="2025-11-26", season=2025, last_day="2026-01-28", n=6000, league="uefa.champions"):
     """Pretend it is `cutoff` in last season's Champions League league phase; compare with the final league-phase table."""
     m = load_matches(); cut = pd.Timestamp(cutoff)
     tm = TeamModel().fit(m[m.date < cut], asof=cut)
-    s = m[(m.league == "uefa.champions") & (m.season == season) & (m.date <= last_day)]
+    s = m[(m.league == league) & (m.season == season) & (m.date <= last_day)]
     before, after = s[s.date < cut], s[s.date >= cut]
     real = final_table(s); pos = {t: i for i, t in enumerate(real.team_id)}
-    print(f"Champions League {season}-{(season + 1) % 100:02d}: {len(before)} matches played at cutoff, {len(after)} to come, {len(real)} teams")
+    print(f"{league} {season}-{(season + 1) % 100:02d}: {len(before)} matches played at cutoff, {len(after)} to come, {len(real)} teams")
     res = simulate_core(tm, table(before), after[["home_id", "away_id"]].to_dict("records"), CL_BANDS, np.random.default_rng(3), n, team_sd(table(before), m[m.date < cut], CL_SD, CL_NEW_SD))
     rows = []
     for r in res:
@@ -66,6 +66,8 @@ def run_champions_league(cutoff="2025-11-26", season=2025, last_day="2026-01-28"
 if __name__ == "__main__":
     if sys.argv[1:2] == ["cl"]:
         run_champions_league(*sys.argv[2:3]); raise SystemExit
+    if sys.argv[1:2] == ["cup"]:       # python -m betsuggester.soccer_retro cup uefa.europa 2025-11-27 2026-01-29
+        run_champions_league(sys.argv[3], 2025, sys.argv[4], league=sys.argv[2]); raise SystemExit
     cutoff = sys.argv[1] if len(sys.argv) > 1 else "2025-11-24"
     o = run(cutoff)
     for sd in (0.0, 0.15):

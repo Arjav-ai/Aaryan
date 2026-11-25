@@ -117,3 +117,13 @@ Browser test with a stand-in database and crafted scores: `tests/e2e/record.test
 Questionable 50%, Day-to-Day 40%; the last three are untested judgement calls). Measured on 959 unseen games with lineups known:
 typical margin miss 11.65 -> 11.54 points (bookmaker 10.93). Player-by-player ratings were tried first and were worse (13.4)
 because there is too little data per player. `python -m betsuggester.nba_injury_backtest` reproduces the numbers.
+
+### Europa League and Conference League; last 5 games on every prop
+Football now covers the Europa League (`uefa.europa`) and Conference League (`uefa.europa.conf`) besides the Champions League:
+matches, player props and league-phase outrights (top 8 / playoff 9-24 / out 25-36; trophy chances still held until the knockout draw).
+`soccer_outrights.CUPS` holds each cup's name and last league-phase day. Retro test on last season at the same stage
+(`python -m betsuggester.soccer_retro cup uefa.europa 2025-11-27 2026-01-29`): Europa beat a flat guess on all three bands,
+Conference on top 8 and out only (its middle band is no better than flat). Clubs from outside the big five leagues have only their
+European matches in the data, so their numbers are less reliable.
+Every prop row (inside a match / game page, Best bets and Most probable) shows its last 5 games coloured against the line,
+with "N of 5 over/under L" updating as the line changes.

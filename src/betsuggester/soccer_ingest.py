@@ -11,7 +11,8 @@ from . import espn
 from .db import connect
 
 LEAGUES = {"eng.1": "Premier League", "esp.1": "La Liga", "ger.1": "Bundesliga",
-           "ita.1": "Serie A", "fra.1": "Ligue 1", "uefa.champions": "Champions League"}
+           "ita.1": "Serie A", "fra.1": "Ligue 1", "uefa.champions": "Champions League",
+           "uefa.europa": "Europa League", "uefa.europa.conf": "Conference League"}
 ESPN_PATH = "soccer/{league}"
 
 

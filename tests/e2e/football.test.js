@@ -60,6 +60,10 @@ const pc = t => t.includes('90%+') ? 90 : (t.includes('<1%') ? 0 : parseInt(t.ma
   const teamsWithPlayers = new Set(plist.map(x=>x.team)).size;
   ok(`each team with players has its own crest heading (${teamsWithPlayers})`, (await p.locator('h3.tg').count())===teamsWithPlayers, String(await p.locator('h3.tg').count()));
   const rowsSh = await p.locator('.srow').count(); ok('each player shows all 4 stats', rowsSh===plist.length*4, `${rowsSh}`);
+  ok('every prop row shows its last 5 games and how many beat the line', (await p.locator('.srow .srl5').count())===rowsSh && (await p.locator('.srow .srl5 b').count())===rowsSh*5, `${await p.locator('.srow .srl5').count()} rows, ${await p.locator('.srow .srl5 b').count()} values`);
+  { const r = await p.evaluate(()=>{ const row=document.querySelector('.srow'); return { name: row.closest('article.card').querySelector('.name').textContent, label: row.querySelector('.slabel').textContent, vals: [...row.querySelectorAll('.srl5 b')].map(x=>+x.textContent) }; });
+    const key = {Shots:'shots','Shots on target':'sot',Goals:'goals',Assists:'assists'}[r.label]; const want = plist.find(x=>x.name===r.name).stats[key].last5;
+    ok(`the last-5 values for ${r.name} (${r.label}) are the ones in the data`, JSON.stringify(r.vals)===JSON.stringify(want), JSON.stringify(r.vals)+' vs '+JSON.stringify(want)); }
   await p.click(`#list [data-mt=home]`); const nh = await p.locator('#list article.card .name').count(); ok('team filter: home only', nh===plist.filter(x=>x.home).length, String(nh));
   await p.click(`#list [data-mt=away]`); const na = await p.locator('#list article.card .name').count(); ok('team filter: away only', na===plist.filter(x=>!x.home).length, String(na));
   await p.click(`#list [data-mt=all]`);
@@ -111,7 +115,7 @@ const pc = t => t.includes('90%+') ? 90 : (t.includes('<1%') ? 0 : parseInt(t.ma
   await p.click('button[data-tab=outrights]'); await p.waitForSelector('.orow');
   ok('controls hidden on Outrights', !(await p.locator('#g-game').isVisible()) && !(await p.locator('#stat-chips').isVisible()) && !(await p.locator('#lg-chips').isVisible()));
   const out = DATA.outrights;
-  ok('Outrights has 6 competitions incl. Champions League', (await p.locator('.obar .chip').count())===6 && /Champions League/.test(await p.locator('.obar').innerText()));
+  const OBAR = await p.locator('.obar').innerText(); ok(`Outrights has all ${Object.keys(DATA.outrights).length} competitions incl. the three European cups`, (await p.locator('.obar .chip').count())===Object.keys(DATA.outrights).length && ['Champions League','Europa League','Conference League'].every(n=>OBAR.includes(n)));
   for (const [lg,o] of Object.entries(out)) {
     await p.click(`button[data-ol="${lg}"]`);
     const labels = await p.locator('.seg button[data-om]').allInnerTexts();
@@ -125,6 +129,7 @@ const pc = t => t.includes('90%+') ? 90 : (t.includes('<1%') ? 0 : parseInt(t.ma
       ok(`${o.name} / ${m.label}: ${shown.length} teams, sorted, every % matches the data`, same, same?'':`page ${shown.slice(0,5)} vs data ${want.slice(0,5)}`);
     }
   }
+  for (const lg of ['uefa.champions','uefa.europa','uefa.europa.conf']) { await p.click(`button[data-ol="${lg}"]`); ok(`${DATA.outrights[lg].name} says trophy chances come after the knockout draw`, /after the knockout draw/.test(await p.locator('#list').innerText())); }
   await p.click('button[data-ol="uefa.champions"]');
   ok('Champions League says trophy chances come after the knockout draw', /after the knockout draw/.test(await p.locator('#list').innerText()));
   await p.click('button[data-ol="eng.1"]'); ok('no draw notice on domestic leagues', !/knockout draw/.test(await p.locator('#list').innerText()));

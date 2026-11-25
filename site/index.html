@@ -106,6 +106,7 @@ h1{font-family:var(--font-head);font-size:22px;letter-spacing:-.01em;margin:0}
 .spred b{font-family:var(--font-head);font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums}
 .spred .range{font-size:12px;color:var(--muted)}
 .sres{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;font-size:13px}
+.srl5{grid-column:1/-1;flex-wrap:wrap}
 .srow .field input{padding:7px 8px}
 .gh{color:var(--ink);font-family:var(--font-head);font-size:15px;text-transform:none;letter-spacing:0;margin:14px 0 0}
 .mk{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
@@ -286,9 +287,11 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   }
   function pctHTML(e){return fmtPct(e)+'<small>'+(S.side==='over'?'to go over':'to stay under')+'</small>'}
   function l5HTML(r,e){
+    var hits=0;
     return '<span>Last 5</span>'+r.last5.map(function(v){
       var c=''; if(v===e.line)c=''; else if(S.side==='over')c=v>e.line?'hit':'miss'; else c=v<e.line?'hit':'miss';
-      return '<b class="'+c+'">'+v+'</b>';}).join('');
+      if(c==='hit')hits++;
+      return '<b class="'+c+'">'+v+'</b>';}).join('')+'<span>'+hits+' of '+r.last5.length+' '+(S.side==='over'?'over':'under')+' '+fmtLine(e.line)+'</span>';
   }
   function injNotes(p){
     var n='';
@@ -324,7 +327,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     return '<div class="srow" data-key="'+esc(stateKey(r))+'" data-base="'+esc(r.base)+'"><div class="spred"><span class="slabel">'+esc(r.unit)+'</span><b>'+r.mu.toFixed(r.mu<1?2:1)+'</b><span class="range">likely '+lo+'\u2013'+hi+'</span></div>'+
       '<label class="field"><span>Line</span><input data-field="line" type="number" inputmode="decimal" step="0.5" min="0" value="'+e.line+'"></label>'+
       '<label class="field"><span>Odds</span><input data-field="odds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="1.85" value="'+(e.odds||'')+'"></label>'+
-      '<div class="sres">'+sresHTML(r,e)+'</div></div>';
+      '<div class="sres">'+sresHTML(r,e)+'</div><div class="l5 srl5">'+l5HTML(r,e)+'</div></div>';
   }
   function playerCardHTML(p){
     var badges='';
@@ -805,7 +808,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       if(st.line==null&&st.odds==null)delete S.rows[sk];
       save();
       var e=evalRow(r,typ);
-      if(typ){host.querySelector('.sres').innerHTML=sresHTML(r,e);}
+      if(typ){host.querySelector('.sres').innerHTML=sresHTML(r,e);host.querySelector('.srl5').innerHTML=l5HTML(r,e);}
       else{host.querySelector('.pct').innerHTML=pctHTML(e);host.querySelector('.res').innerHTML=resHTML(r,e);host.querySelector('.l5').innerHTML=l5HTML(r,e);}
     }else if(f==='modds'){                              // match market odds
       var opt=inp.closest('.opt'), m=cur.GAMES[opt.dataset.mid], kind=opt.dataset.kind, sel=opt.dataset.sel, key=opt.dataset.key;
