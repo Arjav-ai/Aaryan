@@ -152,8 +152,8 @@ const pc = t => t.includes('90%+') ? 90 : (t.includes('<1%') ? 0 : parseInt(t.ma
   await p.waitForTimeout(900); await p.reload(); await p.waitForTimeout(1200);
   ok('football selection survives reload', (await p.getAttribute('button[data-sport=football]','aria-pressed'))==='true');
   await p.click('button[data-sport=nba]'); await p.waitForTimeout(900);
-  ok('switching back to NBA works', (await p.locator('#tabs .tab').count())===2 && (await p.locator('article.card').count())>0);
-  ok('about section changes with the sport', !/Matches:/.test(await p.evaluate(()=>document.querySelector('#about-list').innerText)));
+  ok('switching back to NBA works (3 tabs, lands on Games)', (await p.locator('#tabs .tab').count())===3 && (await p.locator('.mrow').count())>0);
+  ok('about section changes with the sport', !/Matches:/.test(await p.evaluate(()=>document.querySelector('#about-list').textContent)));
 
   // ---------- widths, failure of crests / data ----------
   for (const w of [360,390,768,1280]) { const q=await (await b.newContext({viewport:{width:w,height:844}})).newPage(); await q.goto(URL); await q.waitForSelector('.card'); await q.click('button[data-sport=football]'); await q.waitForTimeout(700);

@@ -38,8 +38,31 @@ def fetch(team_id: str) -> str:
         return f"failed ({type(e).__name__})"
 
 
+# ESPN's NBA abbreviations -> the codes our NBA data uses (Basketball-Reference)
+NBA_CODES = {"BKN": "BRK", "CHA": "CHO", "GS": "GSW", "NO": "NOP", "NY": "NYK", "PHX": "PHO", "SA": "SAS", "UTAH": "UTA", "WSH": "WAS"}
+
+
+def fetch_nba() -> str:
+    """The 30 NBA team logos -> site/crests/nba/<code>.png"""
+    from . import espn
+    out = OUT / "nba"
+    out.mkdir(parents=True, exist_ok=True)
+    teams = espn.get("basketball/nba/teams")["sports"][0]["leagues"][0]["teams"]
+    got = 0
+    for t in teams:
+        t = t["team"]; code = NBA_CODES.get(t["abbreviation"], t["abbreviation"]); f = out / f"{code}.png"
+        if f.exists() and f.stat().st_size > 200:
+            got += 1; continue
+        path = t["logos"][0]["href"].replace("https://a.espncdn.com", "")
+        r = requests.get(f"https://a.espncdn.com/combiner/i?img={path}&w=96&h=96", headers=HEADERS, timeout=30)
+        if r.status_code == 200 and len(r.content) > 200:
+            f.write_bytes(r.content); got += 1
+    return f"{got} of {len(teams)} NBA logos"
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    print("NBA:", fetch_nba())
     ids = sorted(team_ids())
     with ThreadPoolExecutor(4) as pool:
         results = dict(zip(ids, pool.map(fetch, ids)))

@@ -78,3 +78,9 @@ and the two data files, so a brand-new club shows initials until the crests are 
 Phone layout: the page leaves 44px under the status bar for the Claude app's floating buttons (`--chrome`), keeps its 16px
 side gutters on `.wrap`, and keeps the sticky header compact. Test: `tests/e2e/phone-layout.test.js`.
 Browser tests: `nba.test.js` (47), `football.test.js` (89), `refresh.test.js` (30), `started.test.js`.
+
+### NBA games
+NBA > Games works like Football > Matches: a list of upcoming games with team logos (away team first), tap one for its
+page with every player's props for both teams, a "ruled out" notice per team, and team / stat filters. NBA has no game-level
+model, so the list shows no win percentages. Logos are `site/crests/nba/<code>.png` (30 teams, `python -m betsuggester.crests`).
+Browser tests: `tests/e2e/nba-games.test.js` (38 checks).

@@ -183,12 +183,12 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   var LS='propfinder-v1', CAP=0.9, PAGE=40;
   var STATS_NBA=['pts','reb','ast','fg3'];
   var SPORTS={
-    nba:{label:'NBA',file:'predictions.json',tabs:['best','probable'],about:[
+    nba:{label:'NBA',file:'predictions.json',tabs:['matches','best','probable'],noun:'game',names:{matches:'Games'},about:[
       '<strong>The percentage</strong> is the model\'s chance that the player lands on your side of the line. Change the line to the one your bookmaker offers and it recalculates.',
       '<strong>Tested on past games</strong> the model had not seen: when it said 70\u201380% the prop hit about 73% of the time. Above 90% it hit between 86% and 94%, depending on the stat, so this page never shows more than 90%.',
       '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. A positive number means the odds pay more than the model thinks the bet is worth. It is an estimate, not a promise.',
       '<strong>Not covered:</strong> the effect of a teammate being out (flagged on the card, not priced in). Top scorers outscored the model by about 0.7 points in testing. Real bookmaker lines have not been back-tested. Only one and a half seasons of games are in the data.']},
-    football:{label:'Football',file:'predictions_soccer.json',tabs:['matches','best','probable','outrights'],about:[
+    football:{label:'Football',file:'predictions_soccer.json',tabs:['matches','best','probable','outrights'],noun:'match',about:[
       '<strong>Matches:</strong> tested on 1,400 matches the model had not seen, its win/draw/loss probabilities scored clearly better than a guess based on league averages, and home-win and handicap chances matched what happened. <strong>Total goals is the weakest market</strong> (it said 53% for over 2.5 goals; 56% happened).',
       '<strong>Players:</strong> chances assume the player plays. Line-ups come out about an hour before kick-off, so check he starts. Shots and shots on target were well calibrated over 28,000 test player-games; goals and assists are rare events, so those are rougher, and goals or assists lines above 0.5 were not tested.',
       '<strong>Outrights</strong> come from simulating the rest of each league 20,000 times. For the Champions League only the league phase is simulated (top 8, playoff, out); trophy chances are held back until the knockout draw has been made. The model uses last season too, so it can rate a team above one with more points this season. Test runs on last season were reasonable but small, so treat big favourites as less certain than shown. Nothing is shown above 90%.',
@@ -392,6 +392,16 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     return '<div class="mk" data-key="ML|'+esc(m.id)+'|'+kind+'" data-mid="'+esc(m.id)+'" data-kind="'+kind+'"><div class="mk-head"><div class="mk-title">'+title+'</div>'+line+'</div><div class="opts'+(sels.length===3?' o3':'')+'">'+
       sels.map(function(s){return optHTML(m,kind,s)}).join('')+'</div></div>';
   }
+  function tn(m,side){return m[side+'_name']||m[side]}                       // team display name
+  function cid(m,side){return m.grid?m[side+'_id']:'nba/'+m[side]}           // crest file: football by ESPN id, NBA by team code
+  function order(m){return m.grid?['home','away']:['away','home']}          // football: home first; NBA: away first ("Miami at Philadelphia")
+  function noun(){return SPORTS[S.sport].noun||'match'}
+  function nouns(){return noun()==='match'?'matches':noun()+'s'}
+  function outsOf(m,side){                                                    // players ruled out, from each player's own-team list
+    var seen={},out=[];
+    cur.d.players.forEach(function(p){if(p.game===m.id&&p.home===(side==='home')&&p.teammates_out)p.teammates_out.forEach(function(n){if(!seen[n]){seen[n]=1;out.push(n)}})});
+    return out;
+  }
   function pct1(p){return p>CAP?'90%+':(p<0.005?'<1%':Math.round(p*100)+'%')}
   function matchProbs(m){return{home:gridProb(m.grid,'1x2','home').win,draw:gridProb(m.grid,'1x2','draw').win,away:gridProb(m.grid,'1x2','away').win}}
   function dayLabel(g){try{return new Date(g.start).toLocaleDateString([],{weekday:'long',day:'numeric',month:'short'})}catch(e){return g.date}}
@@ -399,39 +409,45 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   function nPlayers(m){return cur.d.players.filter(function(p){return p.game===m.id}).length}
   function startN(p){var x=/(\d+) of last/.exec(p.tag||'');return x?+x[1]:0}
   function mrowHTML(m){
-    var pr=matchProbs(m), np=nPlayers(m);
-    return '<button type="button" class="mrow" data-open="'+esc(m.id)+'" aria-label="'+esc(m.home+' v '+m.away+': open')+'">'+
-      '<div class="mmeta"><span>'+esc(timeLabel(m))+'</span><span>'+esc(m.league_name)+'</span></div>'+
-      '<div class="mline">'+crest(m.home_id,m.home,32)+'<span class="mname">'+esc(m.home)+'</span><b class="mpct">'+pct1(pr.home)+'</b></div>'+
-      '<div class="mline">'+crest(m.away_id,m.away,32)+'<span class="mname">'+esc(m.away)+'</span><b class="mpct">'+pct1(pr.away)+'</b></div>'+
-      '<div class="mfoot"><span>Draw '+pct1(pr.draw)+'</span><span>Expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1)+'</span><span>'+(np?np+' players':'no player data')+' \u203a</span></div></button>';
+    var np=nPlayers(m), pr=m.grid?matchProbs(m):null;
+    var nOut=outsOf(m,'home').length+outsOf(m,'away').length;
+    var foot=pr?'<span>Draw '+pct1(pr.draw)+'</span><span>Expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1)+'</span>'
+               :'<span>'+(nOut?nOut+' ruled out':'No one ruled out')+'</span>';
+    return '<button type="button" class="mrow" data-open="'+esc(m.id)+'" aria-label="'+esc(tn(m,'away')+' at '+tn(m,'home')+': open')+'">'+
+      '<div class="mmeta"><span>'+esc(timeLabel(m))+'</span><span>'+esc(m.league_name||'NBA')+'</span></div>'+
+      order(m).map(function(sd){return '<div class="mline">'+crest(cid(m,sd),tn(m,sd),32)+'<span class="mname">'+esc(tn(m,sd))+'</span>'+(pr?'<b class="mpct">'+pct1(pr[sd])+'</b>':'')+'</div>'}).join('')+
+      '<div class="mfoot">'+foot+'<span>'+(np?np+' players':'no player data')+' \u203a</span></div></button>';
   }
   function matchListHTML(){
-    var ms=matchesVisible(); if(!ms.length)return none('No matches found','Try another league or team.');
+    var ms=matchesVisible(); if(!ms.length)return none('No '+nouns()+' found',cur.d.games.some(function(g){return g.league})?'Try another league or team.':'Try another team.');
     var out='',last='';
     ms.forEach(function(m){var d=dayLabel(m);if(d!==last){out+='<h3 class="gh">'+esc(d)+'</h3>';last=d;}out+=mrowHTML(m);});
     return out;
   }
   function detailHTML(m){
-    var head='<div><button type="button" class="chip" data-back="1">\u2190 All matches</button></div>'+
-      '<article class="card"><div class="dhead"><div class="dteam">'+crest(m.home_id,m.home,56)+'<span>'+esc(m.home)+'</span></div><div class="dvs">v</div><div class="dteam">'+crest(m.away_id,m.away,56)+'<span>'+esc(m.away)+'</span></div></div>'+
-      '<div class="meta dmeta">'+esc(m.league_name)+' \u00b7 '+esc(dayLabel(m))+' '+esc(timeLabel(m))+' \u00b7 expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1)+'</div>'+
-      '<div class="seg" role="group" aria-label="View"><button data-mv="props" aria-pressed="'+(S.mview==='props')+'">Player props</button><button data-mv="bets" aria-pressed="'+(S.mview==='bets')+'">Match bets</button></div></article>';
-    if(S.mview==='bets'){
+    var football=!!m.grid; if(!football)S.mview='props';
+    var xg=football?' \u00b7 expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1):'';
+    var head='<div><button type="button" class="chip" data-back="1">\u2190 All '+nouns()+'</button></div>'+
+      '<article class="card"><div class="dhead">'+order(m).map(function(sd,i){return (i?'<div class="dvs">'+(football?'v':'at')+'</div>':'')+'<div class="dteam">'+crest(cid(m,sd),tn(m,sd),56)+'<span>'+esc(tn(m,sd))+'</span></div>'}).join('')+'</div>'+
+      '<div class="meta dmeta">'+esc(m.league_name||'NBA')+' \u00b7 '+esc(dayLabel(m))+' '+esc(timeLabel(m))+xg+'</div>'+
+      (football?'<div class="seg" role="group" aria-label="View"><button data-mv="props" aria-pressed="'+(S.mview==='props')+'">Player props</button><button data-mv="bets" aria-pressed="'+(S.mview==='bets')+'">Match bets</button></div>':'')+'</article>';
+    if(football&&S.mview==='bets'){
       return head+'<p class="hint">Chances from the match model. Type the odds you are offered on any option to see the edge.</p><article class="card" data-mcard="'+esc(m.id)+'">'+marketHTML(m,'1x2','Result',['home','draw','away'])+marketHTML(m,'hcp','Handicap',['home','away'])+
         marketHTML(m,'tot','Total goals',['over','under'])+marketHTML(m,'btts','Both teams to score',['yes','no'])+'</article>';
     }
+    var outs='';
+    ['home','away'].forEach(function(side){var o=outsOf(m,side);if(o.length)outs+='<div class="notice">Ruled out for '+esc(tn(m,side))+': '+o.map(esc).join(', ')+'. Their absence is not priced into the numbers; it often raises teammates\' output.</div>';});
     var statChips='<div class="chips"><button class="chip" data-stat="all" aria-pressed="'+(S.stat==='all')+'">All stats</button>'+cur.STATS.map(function(st){return '<button class="chip" data-stat="'+st+'" aria-pressed="'+(S.stat===st)+'">'+esc(cur.d.labels[st])+'</button>'}).join('')+'</div>';
-    var chips='<p class="hint">Players expected to play, with what the model predicts. Type the line and odds your bookmaker shows.</p>'+statChips+'<div class="chips"><button class="chip" data-mt="all" aria-pressed="'+(S.mteam==='all')+'">Both teams</button>'+
-      '<button class="chip" data-mt="home" aria-pressed="'+(S.mteam==='home')+'">'+esc(m.home)+'</button><button class="chip" data-mt="away" aria-pressed="'+(S.mteam==='away')+'">'+esc(m.away)+'</button></div>';
+    var chips=outs+'<p class="hint">Players expected to play, with what the model predicts. Type the line and odds your bookmaker shows.</p>'+statChips+'<div class="chips"><button class="chip" data-mt="all" aria-pressed="'+(S.mteam==='all')+'">Both teams</button>'+
+      order(m).map(function(sd){return '<button class="chip" data-mt="'+sd+'" aria-pressed="'+(S.mteam===sd)+'">'+esc(tn(m,sd))+'</button>'}).join('')+'</div>';
     var all=cur.d.players.filter(function(p){return p.game===m.id&&cur.STATS.some(function(s){return p.stats[s]&&(S.stat==='all'||S.stat===s)})});
     var body='';
     if(!all.length){
-      body='<div class="empty"><strong>No player data for this match</strong>Players need at least 5 recent games in the data. Match bets are still available.</div>';
+      body='<div class="empty"><strong>No player data for this '+noun()+'</strong>Players need at least 5 recent games in the data.'+(football?' Match bets are still available.':'')+'</div>';
     }else{
-      [['home',m.home,m.home_id],['away',m.away,m.away_id]].forEach(function(t){
+      order(m).map(function(sd){return [sd,tn(m,sd),cid(m,sd)]}).forEach(function(t){
         if(S.mteam!=='all'&&S.mteam!==t[0])return;
-        var ps=all.filter(function(p){return p.home===(t[0]==='home')}).sort(function(a,b){return startN(b)-startN(a)||(b.stats.shots?b.stats.shots.mu:0)-(a.stats.shots?a.stats.shots.mu:0)});
+        var ps=all.filter(function(p){return p.home===(t[0]==='home')}).sort(function(a,b){return (b.minutes||0)-(a.minutes||0)||startN(b)-startN(a)||(b.stats.shots?b.stats.shots.mu:0)-(a.stats.shots?a.stats.shots.mu:0)});
         if(ps.length)body+='<h3 class="gh tg">'+crest(t[2],t[1],24)+'<span>'+esc(t[1])+' ('+ps.length+')</span></h3>'+ps.map(playerCardHTML).join('');
       });
     }
@@ -445,7 +461,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   }
   function matchesVisible(){
     var q=S.q.trim().toLowerCase();
-    return cur.d.games.filter(function(g){return (S.lg==='all'||g.league===S.lg)&&(!q||(g.home+' '+g.away).toLowerCase().indexOf(q)>=0)});
+    return cur.d.games.filter(function(g){return (S.lg==='all'||g.league===S.lg)&&(!q||(tn(g,'home')+' '+tn(g,'away')+' '+g.home+' '+g.away).toLowerCase().indexOf(q)>=0)});
   }
 
   /* ---------- football outrights ---------- */
@@ -504,8 +520,9 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     $('#stat-chips').hidden=!props; $('#g-min').hidden=!props; $('#g-side').hidden=!props;
     $('#g-game').hidden=!(props||list); $('#game-field').hidden=list; $('#g-game').style.gridTemplateColumns=list?'1fr':'';
     document.querySelector('.controls').hidden=!!inMatch;
-    var lc=$('#lg-chips'); lc.hidden=!list;
-    if(list){var seen={},lgs=[];cur.d.games.forEach(function(g){if(!seen[g.league]){seen[g.league]=1;lgs.push([g.league,g.league_name]);}});
+    var lc=$('#lg-chips'), seen={}, lgs=[]; cur.d.games.forEach(function(g){if(g.league&&!seen[g.league]){seen[g.league]=1;lgs.push([g.league,g.league_name]);}});
+    lc.hidden=!(list&&lgs.length>1);
+    if(list&&lgs.length>1){
       lc.innerHTML='<button class="chip" data-lg="all" aria-pressed="'+(S.lg==='all')+'">All</button>'+lgs.map(function(l){return '<button class="chip" data-lg="'+esc(l[0])+'" aria-pressed="'+(S.lg===l[0])+'">'+esc(l[1])+'</button>'}).join('');}
     $('#q-label').textContent=t==='matches'?'Team':'Player'; $('#q').placeholder=t==='matches'?'Search team':'Search name';
   }
@@ -518,7 +535,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     var sp=SPORTS[S.sport];
     if(sp.tabs.indexOf(S.tab)<0)S.tab=sp.tabs.indexOf('probable')>=0?'probable':sp.tabs[0];
     $('#sports').innerHTML=Object.keys(SPORTS).map(function(k){return '<button class="sport" data-sport="'+k+'" aria-pressed="'+(k===S.sport)+'">'+SPORTS[k].label+'</button>'}).join('');
-    $('#tabs').innerHTML=sp.tabs.map(function(t){return '<button class="tab" role="tab" data-tab="'+t+'" aria-selected="'+(t===S.tab)+'">'+TABNAME[t]+(t==='best'?'<span class="n" id="n-best">0</span>':'')+'</button>'}).join('');
+    $('#tabs').innerHTML=sp.tabs.map(function(t){return '<button class="tab" role="tab" data-tab="'+t+'" aria-selected="'+(t===S.tab)+'">'+((sp.names&&sp.names[t])||TABNAME[t])+(t==='best'?'<span class="n" id="n-best">0</span>':'')+'</button>'}).join('');
     document.querySelectorAll('#stat-chips .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.stat===S.stat))});
     document.querySelectorAll('#g-side button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.side===S.side))});
     $('#target').disabled=(parseFloat(S.min)||0)>1;
@@ -531,7 +548,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
         $('#hint').textContent='';
         html=detailHTML(mm);
       }else{
-        $('#hint').textContent='Tap a match to see its player props and match bets.';
+        $('#hint').textContent='Tap a '+noun()+' to see its player props'+(S.sport==='football'?' and match bets':'')+'.';
         html=matchListHTML();
       }
     }else if(S.tab==='outrights'){
@@ -678,7 +695,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   }
   function switchSport(sport){
     if(sport===S.sport)return;
-    var prev=S.sport; S.sport=sport; S.tab='probable';
+    var prev=S.sport; S.sport=sport; S.tab=SPORTS[sport].tabs[0];
     loadSport(sport,function(){save();show(true);window.scrollTo(0,0);});
   }
   /* ---------- Refresh now: starts the same refresh as the daily schedule ---------- */
