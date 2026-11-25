@@ -103,3 +103,17 @@ model weight -0.14 +/- 0.22, i.e. nothing beyond the line. Pretend flat bets on 
 (-0.6% at edge >= 10%); with ~1,000 bets the error bar is about +/-3%, so this cannot prove "no edge" but shows no sign of one.
 An earlier version of the page said the model was "well above what betting markets achieve" (~15 vs ~11-12): wrong, the bookmaker's own
 std of miss is ~14.0 on these games. Fixed.
+
+### Record (scoreboard) and injuries in the NBA game model
+**Record**: type odds on a prop / game bet / outright, tap "Track bet", and the Record page settles it from `results.json`
+(final scores + player stats for the last 21 days, written by `python -m betsuggester.results` on every refresh) at 1 unit per bet.
+It shows profit, return per bet with an honest error bar, what the model *expected* from those same bets (so you can see whether
+the gap is luck), and a calibration table (model chance vs how often it won). The ledger is one private document per viewer
+(`data/users/<id>/ledger`, `db` + `user` capabilities), with a localStorage fallback. Void: player did not play. Push: line hit exactly.
+Browser test with a stand-in database and crafted scores: `tests/e2e/record.test.js` (38 checks).
+
+**Injuries**: `nba_injury_adjust.py` lowers a team's expected margin by 0.046 points per unit of "talent" ruled out (talent = points +
+1.2 rebounds + 1.5 assists per game, last 10 games) x how often he normally plays x the chance he sits (Out 100%, Doubtful 85%,
+Questionable 50%, Day-to-Day 40%; the last three are untested judgement calls). Measured on 959 unseen games with lineups known:
+typical margin miss 11.65 -> 11.54 points (bookmaker 10.93). Player-by-player ratings were tried first and were worse (13.4)
+because there is too little data per player. `python -m betsuggester.nba_injury_backtest` reproduces the numbers.

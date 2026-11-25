@@ -36,6 +36,21 @@ h1{font-family:var(--font-head);font-size:22px;letter-spacing:-.01em;margin:0}
 .tabs{display:flex;gap:2px;margin-top:6px;overflow-x:auto}
 .rbtn{padding:5px 12px;border:1px solid var(--line);border-radius:99px;background:var(--surface);font-weight:600;font-size:13px;cursor:pointer}
 .rbtn[disabled]{opacity:.6;cursor:default}
+.rbtn[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.trk{padding:2px 10px;border:1px solid var(--accent);border-radius:99px;background:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer}
+.trk[disabled]{border-color:var(--line);color:var(--muted);cursor:default}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tile{padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);display:grid;gap:2px;min-width:0}
+.tile b{font-family:var(--font-head);font-size:20px;font-variant-numeric:tabular-nums}
+.tile span{font-size:12px;color:var(--muted)}
+.tile.good b{color:var(--good)} .tile.bad b{color:var(--bad)}
+.brow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.brow:first-of-type{border-top:0}
+.brow .bres{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.brow .bres.good{color:var(--good)} .brow .bres.bad{color:var(--bad)} .brow .bres.neutral{color:var(--muted)}
+.brow .del{grid-column:1/-1;justify-self:start;border:0;background:none;color:var(--muted);font-size:12px;text-decoration:underline;cursor:pointer;padding:0}
+.ctab{display:grid;grid-template-columns:1.3fr .5fr .7fr .7fr;gap:4px 8px;font-size:13px;font-variant-numeric:tabular-nums}
+.ctab .h{color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
 .rpanel{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--accent-soft);font-size:13.5px;display:grid;gap:8px}
 .rpanel.good{background:var(--good-soft);color:var(--good)}
 .rpanel.bad{background:var(--bad-soft);color:var(--bad)}
@@ -145,7 +160,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     <div class="bar"><h1>Prop Finder</h1><div class="sports" id="sports" role="group" aria-label="Sport"></div></div>
     <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
   </header>
-  <div class="statusrow"><span id="asof">Loading&#8230;</span><button class="rbtn" id="rbtn" type="button" hidden>Refresh now</button></div>
+  <div class="statusrow"><span id="asof">Loading&#8230;</span><button class="rbtn" id="rbtn" type="button" hidden>Refresh now</button><button class="rbtn" id="recbtn" type="button" aria-pressed="false">Record</button></div>
 
   <div class="notice" id="stale" hidden></div>
   <div class="rpanel" id="rpanel" role="status" hidden></div>
@@ -187,7 +202,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       '<strong>The percentage</strong> is the model\'s chance that the player lands on your side of the line. Change the line to the one your bookmaker offers and it recalculates.',
       '<strong>Tested on past games</strong> the model had not seen: when it said 70\u201380% the prop hit about 73% of the time. Above 90% it hit between 86% and 94%, depending on the stat, so this page never shows more than 90%.',
       '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. A positive number means the odds pay more than the model thinks the bet is worth. It is an estimate, not a promise.',
-      '<strong>Games:</strong> the game model predicts each team\'s score from attack and defence ratings, home court and back-to-backs. Tested on about 1,000 unseen regular-season games it picked the winner 69% of the time and its chances matched what happened (totals run slightly high). Against DraftKings\' pre-game lines on the same games it did slightly worse (typical margin miss 14.9 points against the bookmaker\'s 14.0) and it added nothing the line did not already contain. Betting every disagreement with the line would have lost about 2% per bet. So treat a gap between this page and your bookmaker as more likely a weakness in this model, which knows nothing about injuries or lineups, than as a bargain.',
+      '<strong>Games:</strong> the game model predicts each team\'s score from attack and defence ratings, home court and back-to-backs. Tested on about 1,000 unseen regular-season games it picked the winner 69% of the time and its chances matched what happened (totals run slightly high). Against DraftKings\' pre-game lines on the same games it did slightly worse (typical margin miss 14.9 points against the bookmaker\'s 14.0) and it added nothing the line did not already contain. Betting every disagreement with the line would have lost about 2% per bet. The model now also adjusts for players ruled out or doubtful; on past games that trimmed the typical margin miss only from 11.65 to 11.54 points (bookmaker 10.93). So treat a gap between this page and your bookmaker as more likely a weakness in this model, which cannot see late injury news or how good a replacement is, than as a bargain.',
       '<strong>Not covered:</strong> the effect of a teammate being out (flagged on the card, not priced in). Top scorers outscored the model by about 0.7 points in testing. Real bookmaker lines have not been back-tested. Only one and a half seasons of games are in the data.']},
     football:{label:'Football',file:'predictions_soccer.json',tabs:['matches','best','probable','outrights'],noun:'match',about:[
       '<strong>Matches:</strong> tested on 1,400 matches the model had not seen, its win/draw/loss probabilities scored clearly better than a guess based on league averages, and home-win and handicap chances matched what happened. <strong>Total goals is the weakest market</strong> (it said 53% for over 2.5 goals; 56% happened).',
@@ -196,7 +211,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. It is an estimate, not a promise. Only suggestions: this page places nothing. Check what is legal where you are, and only stake money you can afford to lose.']}
   };
   var TABNAME={matches:'Matches',best:'Best bets',probable:'Most probable',outrights:'Outrights'};
-  var S={sport:'nba',tab:'probable',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{},ol:null,om:'title',match:null,mview:'props',mteam:'all',lg:'all'};
+  var S={view:null,sport:'nba',tab:'probable',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{},ol:null,om:'title',match:null,mview:'props',mteam:'all',lg:'all'};
   try{var saved=JSON.parse(localStorage.getItem(LS)||'{}');for(var k in saved)S[k]=saved[k];}catch(e){}
   if(!SPORTS[S.sport])S.sport='nba';
   S.shown=PAGE;
@@ -267,7 +282,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   function resHTML(r,e){
     var h='<span class="pill">Break-even odds '+fmtOdds(e.be)+'</span>';
     if(e.ev==null)return h+'<span class="pill">Type the odds to see the edge</span>';
-    return h+edgePill(e.ev);
+    return h+edgePill(e.ev)+trackBtn('p|'+stateKey(r),e.odds);
   }
   function pctHTML(e){return fmtPct(e)+'<small>'+(S.side==='over'?'to go over':'to stay under')+'</small>'}
   function l5HTML(r,e){
@@ -302,7 +317,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   }
   function sresHTML(r,e){
     var h='<span class="pill">'+fmtPct(e)+' '+(S.side==='over'?'over':'under')+' '+fmtLine(e.line)+'</span><span class="pill">Break-even '+fmtOdds(e.be)+'</span>';
-    return h+edgePill(e.ev);
+    return h+edgePill(e.ev)+trackBtn('p|'+stateKey(r),e.odds);
   }
   function srowHTML(r,e){
     var lo=qtile(r.d,0.1),hi=qtile(r.d,0.9);
@@ -405,7 +420,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     return '<div class="opt" data-key="'+esc(mKey(m,kind,sel))+'" data-mid="'+esc(m.id)+'" data-kind="'+kind+'" data-sel="'+sel+'">'+
       '<span class="olab">'+esc(mLabel(m,kind,sel,line))+'</span><b class="opct">'+fmtPct(e)+'</b>'+
       '<input data-field="modds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="Odds" aria-label="Odds for '+esc(mLabel(m,kind,sel,line))+'" value="'+(e.odds||'')+'">'+
-      '<span class="oedge">'+(e.ev!=null?edgePill(e.ev,true):'<span class="meta">Break-even '+fmtOdds(e.be)+'</span>')+'</span></div>';
+      '<span class="oedge">'+(e.ev!=null?edgePill(e.ev,true)+trackBtn('m|'+mKey(m,kind,sel),e.odds):'<span class="meta">Break-even '+fmtOdds(e.be)+'</span>')+'</span></div>';
   }
   function marketHTML(m,kind,title,sels){
     var line=hasLine(kind)?'<label class="field"><span>'+({hcp:'Home line',tot:'Goals line',spr:'Home spread',ptot:'Points line'}[kind])+'</span><input data-field="mline" type="number" inputmode="decimal" step="0.5" value="'+mLine(m,kind)+'"></label>':'';
@@ -447,6 +462,12 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     ms.forEach(function(m){var d=dayLabel(m);if(d!==last){out+='<h3 class="gh">'+esc(d)+'</h3>';last=d;}out+=mrowHTML(m);});
     return out;
   }
+  function adjHTML(m){
+    var n=m.nba&&m.nba.adj_notes; if(!n||!n.length)return '<p class="hint">No injury adjustment: nobody on the injury list moves the numbers by more than 0.1 points.</p>';
+    return '<article class="card"><div class="meta"><strong>Lineup adjustments, already included</strong> (effect on each team\'s expected margin)</div>'+n.map(function(x){
+      return '<div class="mline"><span class="mname" style="font-size:14px;font-weight:500">'+esc(x.player)+' <span class="meta">'+esc(x.status)+' \u00b7 '+esc(x.team)+'</span></span><b class="mpct" style="font-size:16px">'+(x.pts>0?'+':'\u2212')+Math.abs(x.pts).toFixed(1)+'</b></div>'}).join('')+
+      '<div class="meta">Players ruled out or doubtful count in full; day-to-day and questionable players count partly. Each point of margin here is what past games support, which is small.</div></article>';
+  }
   function detailHTML(m){
     var football=!!m.grid, bets=!!(m.grid||m.nba); if(!bets)S.mview='props';
     var xg=football?' \u00b7 expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1):'';
@@ -456,7 +477,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       (bets?'<div class="seg" role="group" aria-label="View"><button data-mv="props" aria-pressed="'+(S.mview==='props')+'">Player props</button><button data-mv="bets" aria-pressed="'+(S.mview==='bets')+'">'+(football?'Match bets':'Game bets')+'</button></div>':'')+'</article>';
     if(bets&&S.mview==='bets'&&!football){
       var nb=m.nba, os=['away','home'];
-      return head+'<p class="hint">Chances from the game model: it predicts each team\'s score ('+Math.round(nb.mu_away)+' \u2013 '+Math.round(nb.mu_home)+'). It does not know about injuries, so check who is playing. Type the odds you are offered to see the edge.</p><article class="card" data-mcard="'+esc(m.id)+'">'+
+      return head+'<p class="hint">Chances from the game model: it predicts each team\'s score ('+Math.round(nb.mu_away)+' \u2013 '+Math.round(nb.mu_home)+'). It already counts players ruled out or doubtful (listed below) but cannot know late news. Type the odds you are offered to see the edge.</p>'+adjHTML(m)+'<article class="card" data-mcard="'+esc(m.id)+'">'+
         marketHTML(m,'ml','Moneyline',os)+marketHTML(m,'spr','Spread',os)+marketHTML(m,'ptot','Total points',['over','under'])+'</article>';
     }
     if(football&&S.mview==='bets'){
@@ -501,7 +522,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     var e=oEval(lg,t,mk);
     return '<div class="orow" data-key="'+esc(oKey(lg,t.team_id,mk))+'" data-lg="'+esc(lg)+'" data-tid="'+esc(t.team_id)+'"><div class="oteam">'+crest(t.team_id,t.team,32)+'<div><div class="oname">'+esc(t.team)+'</div><div class="osub">'+t.played+' played \u00b7 '+t.points+' pts \u00b7 expected final '+t.exp_points+'</div></div></div>'+
       '<b class="opct">'+fmtPct(e)+'</b><input data-field="oodds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="Odds" aria-label="Odds for '+esc(t.team)+'" value="'+(e.odds||'')+'">'+
-      '<div class="oedge">'+(e.ev!=null?edgePill(e.ev):'<span class="meta">Break-even '+fmtOdds(e.be)+'</span>')+'</div></div>';
+      '<div class="oedge">'+(e.ev!=null?edgePill(e.ev)+trackBtn('o|'+oKey(lg,t.team_id,mk),e.odds):'<span class="meta">Break-even '+fmtOdds(e.be)+'</span>')+'</div></div>';
   }
   function outrightsHTML(){
     var O=cur.d.outrights, lgs=Object.keys(O); if(!S.ol||!O[S.ol])S.ol=lgs[0];
@@ -542,6 +563,129 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     var n=$('#n-best'); if(n)n.textContent=good;
   }
 
+  /* ---------- Record: track bets, settle them against real results ---------- */
+  var LEDGER=[], LSTORE='local', LREADY=false, DBDOC=null, RESULTS=null, saving=false, pendingSave=false;
+  function ledgerSaveLocal(){try{localStorage.setItem('propfinder-ledger',JSON.stringify(LEDGER))}catch(e){}}
+  function ledgerSave(){
+    if(LSTORE!=='db'){ledgerSaveLocal();return;}
+    if(saving){pendingSave=true;return;}
+    saving=true;
+    DBDOC.set({v:1,bets:LEDGER}).then(function(){saving=false;if(pendingSave){pendingSave=false;ledgerSave();}},
+      function(){saving=false;pendingSave=false;LSTORE='local';ledgerSaveLocal();if(S.view==='record')render();});   // db refused: keep going on this device
+  }
+  function ledgerLoad(){
+    var c=window.claude, fin=function(){LREADY=true;render();};
+    var local=function(){LSTORE='local';try{LEDGER=JSON.parse(localStorage.getItem('propfinder-ledger')||'[]')}catch(e){LEDGER=[]}fin();};
+    if(!(c&&c.use)){local();return;}
+    Promise.all([c.use('db'),c.use('user')]).then(function(r){
+      if(!r[0]||!r[1])throw new Error('no db');
+      return r[1].id().then(function(id){if(!id)throw new Error('no id');DBDOC=r[0].doc('data/users/'+id+'/ledger');return DBDOC.get();});
+    }).then(function(snap){LSTORE='db';var d=snap.exists?snap.data():null;LEDGER=d&&d.bets?JSON.parse(JSON.stringify(d.bets)):[];fin();}).catch(local);
+  }
+  function loadResults(){fetch('results.json').then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(d){RESULTS=d;if(S.view==='record')render();}).catch(function(){RESULTS=null});}
+  function gameKey(g){return S.sport==='football'?String(g.id):g.date+'|'+g.home}
+  function stateFor(k){var st=S.rows[k.slice(2)];return st&&st.odds>1?st:null}
+  function betId(k){var st=stateFor(k);return st?k+'|'+(st.line==null?'':st.line)+'|'+st.odds:null}
+  function isTracked(k){var id=betId(k);return !!id&&LEDGER.some(function(b){return b.id===id})}
+  function trackBtn(k,odds){
+    if(!odds||!LREADY)return '';
+    var t=isTracked(k);
+    return '<button type="button" class="trk" data-track="'+esc(k)+'"'+(t?' disabled':'')+'>'+(t?'Tracked \u2713':'Track bet')+'</button>';
+  }
+  function makeBet(k){
+    var st=stateFor(k); if(!st)return null;
+    var t=k.charAt(0), key=k.slice(2), b={id:betId(k),t:Date.now(),sp:S.sport,od:st.odds,ln:st.line==null?null:st.line};
+    if(t==='p'){
+      var parts=key.split('|'), side=parts[parts.length-1], r=cur.ROWMAP[parts.slice(0,-1).join('|')]; if(!r)return null;
+      var g=cur.GAMES[r.p.game], pr=probs(r.d,st.line,side), mo=money(pr.win,pr.push,st.odds);
+      b.ty='prop';b.gk=gameKey(g);b.pl=r.p.name;b.st=r.stat;b.sd=side;b.p=mo.win;b.pr=pr.win;b.pp=pr.push;
+      b.lab=r.p.name+' '+side+' '+fmtLine(st.line)+' '+r.unit.toLowerCase();b.gl=gname(g)+' \u00b7 '+dayLabel(g);
+    }else if(t==='m'){
+      var q=key.split('|'), m=cur.GAMES[q[1]]; if(!m)return null;
+      var pr2=gameProb(m,q[2],q[3],st.line), mo2=money(pr2.win,pr2.push,st.odds);
+      b.ty='game';b.gk=gameKey(m);b.kd=q[2];b.se=q[3];b.p=mo2.win;b.pr=pr2.win;b.pp=pr2.push;
+      b.lab=mLabel(m,q[2],q[3],st.line);b.gl=gname(m)+' \u00b7 '+dayLabel(m);
+    }else{
+      var o=key.split('|'), lg=cur.d.outrights[o[1]], tm=lg&&lg.teams.filter(function(x){return x.team_id===o[2]})[0]; if(!tm)return null;
+      var mo3=money(tm[o[3]],0,st.odds);
+      b.ty='outright';b.p=mo3.win;b.pr=tm[o[3]];b.pp=0;b.lab=tm.team+' \u00b7 '+mkLabel(o[1],o[3]).toLowerCase();b.gl=lg.name+' (decided at season end)';
+    }
+    return b;
+  }
+  function trackBet(k,btn){
+    if(isTracked(k)||!LREADY)return;
+    var b=makeBet(k); if(!b)return;
+    LEDGER.push(b); ledgerSave();
+    if(btn){btn.disabled=true;btn.textContent='Tracked \u2713';}
+  }
+  /* ----- settling ----- */
+  function cmpOver(v,line){return v>line?'won':(v===line?'push':'lost')}
+  function cmpUnder(v,line){return v<line?'won':(v===line?'push':'lost')}
+  function settle(b){
+    if(b.ty==='outright')return{s:'open',note:'decided at the end of the season'};
+    if(!RESULTS)return{s:'wait',note:'results not loaded'};
+    var arr=b.sp==='football'?RESULTS.football:RESULTS.nba, g=arr.filter(function(x){return x.key===b.gk})[0];
+    if(!g)return (Date.now()-b.t)/864e5>(RESULTS.days||21)-3?{s:'unknown',note:'too old to find a result'}:{s:'wait',note:'waiting for the result'};
+    var out;
+    if(b.ty==='prop'){
+      var rec=g.players[b.pl]; if(!rec)return{s:'void',note:'did not play'};
+      var v=rec[(b.sp==='football'?RESULTS.football_stats:RESULTS.nba_stats).indexOf(b.st)];
+      out=b.sd==='over'?cmpOver(v,b.ln):cmpUnder(v,b.ln);
+      return fin(b,out,'finished with '+v);
+    }
+    if(b.sp==='nba'){
+      var mg=g.home_pts-g.away_pts, tot=g.home_pts+g.away_pts;
+      if(b.kd==='ml')out=(b.se==='home'?mg>0:mg<0)?'won':'lost';
+      else if(b.kd==='spr')out=b.se==='home'?(mg+b.ln>0?'won':(mg+b.ln===0?'push':'lost')):(-mg-b.ln>0?'won':(-mg-b.ln===0?'push':'lost'));
+      else out=b.se==='over'?cmpOver(tot,b.ln):cmpUnder(tot,b.ln);
+      return fin(b,out,'final '+g.away_pts+' \u2013 '+g.home_pts);
+    }
+    var hg=g.home_goals, ag=g.away_goals;
+    if(b.kd==='1x2')out=((b.se==='home'&&hg>ag)||(b.se==='draw'&&hg===ag)||(b.se==='away'&&ag>hg))?'won':'lost';
+    else if(b.kd==='hcp'){var d=b.se==='home'?(hg-ag)+b.ln:(ag-hg)-b.ln;out=d>0?'won':(d===0?'push':'lost')}
+    else if(b.kd==='tot')out=b.se==='over'?cmpOver(hg+ag,b.ln):cmpUnder(hg+ag,b.ln);
+    else out=((hg>0&&ag>0)===(b.se==='yes'))?'won':'lost';
+    return fin(b,out,'final '+hg+' \u2013 '+ag);
+  }
+  function fin(b,out,note){return{s:out,note:note,profit:out==='won'?b.od-1:(out==='lost'?-1:0)}}
+  function units(x){return (x>=0?'+':'\u2212')+Math.abs(x).toFixed(2)}
+  var BUCKETS=[[0,.3,'under 30%'],[.3,.45,'30\u201345%'],[.45,.6,'45\u201360%'],[.6,.75,'60\u201375%'],[.75,1.01,'75%+']];
+  function recordHTML(){
+    var items=LEDGER.slice().sort(function(a,b){return b.t-a.t}).map(function(b){return{b:b,r:settle(b)}});
+    var done=items.filter(function(x){return x.r.s==='won'||x.r.s==='lost'||x.r.s==='push'}), voids=items.filter(function(x){return x.r.s==='void'}).length;
+    var won=done.filter(function(x){return x.r.s==='won'}).length, lost=done.filter(function(x){return x.r.s==='lost'}).length, push=done.length-won-lost;
+    var profit=done.reduce(function(a,x){return a+x.r.profit},0), staked=won+lost;
+    var exp=done.reduce(function(a,x){return a+(x.b.p*x.b.od+x.b.pp-1)},0);
+    var luck=Math.sqrt(done.reduce(function(a,x){var p=x.b.p,q=1-p-x.b.pp,ev=p*(x.b.od-1)-q;return a+p*Math.pow(x.b.od-1,2)+q-ev*ev},0));
+    var open=items.filter(function(x){return x.r.s==='wait'||x.r.s==='open'}).length, unknown=items.filter(function(x){return x.r.s==='unknown'}).length;
+    var html='<article class="card"><div class="name">Your record</div>';
+    if(!LEDGER.length){
+      return html+'<p class="hint">Nothing tracked yet. When you type odds on a prop, a game bet or an outright, a "Track bet" button appears next to the edge. Tap it when you place the bet. This page then settles it from real results (1 unit staked each) and shows how the model\'s chances compare with what happened.</p></article>';
+    }
+    html+='<div class="tiles"><div class="tile"><b>'+done.length+'</b><span>settled</span></div><div class="tile '+(profit>0?'good':(profit<0?'bad':''))+'"><b>'+units(profit)+'</b><span>profit, units</span></div><div class="tile '+(staked&&profit>0?'good':(staked&&profit<0?'bad':''))+'"><b>'+(staked?(profit/staked*100>=0?'+':'\u2212')+Math.abs(profit/staked*100).toFixed(1)+'%':'\u2013')+'</b><span>return per bet</span></div></div>'+
+      '<div class="meta">Won '+won+' \u00b7 lost '+lost+(push?' \u00b7 push '+push:'')+(voids?' \u00b7 void '+voids+' (player did not play)':'')+' \u00b7 waiting '+open+(unknown?' \u00b7 '+unknown+' too old to settle':'')+'</div>';
+    if(done.length){
+      var z=luck>0?(profit-exp)/luck:0, ci=done.length>1?1.96*Math.sqrt(done.reduce(function(a,x){var m=profit/done.length;return a+Math.pow(x.r.profit-m,2)},0)/(done.length-1))/Math.sqrt(done.length)*100:0;
+      html+='<div class="meta"><strong>What the model expected:</strong> '+units(exp)+' units from these bets. You got '+units(profit)+'. '+
+        (done.length<30?'With only '+done.length+' settled bets this says very little: a short run is mostly luck.':(Math.abs(z)<2?'That gap is within normal luck.':'That gap is bigger than luck usually explains ('+(z<0?'the model overrated these bets':'the model underrated these bets')+').'))+
+        (staked>1?' The return per bet is '+(profit/staked*100).toFixed(1)+'%, plus or minus about '+ci.toFixed(0)+'% either way, so you need hundreds of bets before it means much.':'')+'</div>';
+    }
+    html+='</article>';
+    var cal=BUCKETS.map(function(bk){var xs=done.filter(function(x){return x.r.s!=='push'&&x.b.pr>=bk[0]&&x.b.pr<bk[1]});if(!xs.length)return null;
+      return {l:bk[2],n:xs.length,said:xs.reduce(function(a,x){return a+x.b.pr},0)/xs.length,act:xs.filter(function(x){return x.r.s==='won'}).length/xs.length}}).filter(Boolean);
+    if(cal.length){
+      html+='<article class="card"><div class="name">Model chance vs what happened</div><div class="ctab"><span class="h">Model said</span><span class="h">Bets</span><span class="h">Average</span><span class="h">Won</span>'+
+        cal.map(function(c){return '<span>'+c.l+'</span><span>'+c.n+'</span><span>'+Math.round(c.said*100)+'%</span><span>'+Math.round(c.act*100)+'%</span>'}).join('')+'</div>'+
+        '<div class="meta">If the model is honest the last two columns match. Small groups wobble a lot.</div></article>';
+    }
+    html+='<article class="card"><div class="name">Your bets</div>'+items.map(function(x){
+      var b=x.b,r=x.r,cls=r.s==='won'?'good':(r.s==='lost'?'bad':'neutral'), txt=r.s==='won'?'Won '+units(r.profit):(r.s==='lost'?'Lost '+units(r.profit):(r.s==='push'?'Push':(r.s==='void'?'Void':(r.s==='open'?'Open':(r.s==='unknown'?'No result':'Waiting')))));
+      return '<div class="brow"><div><div class="name" style="font-size:15px">'+esc(b.lab)+'</div><div class="meta">'+esc(b.gl)+' \u00b7 odds '+fmtOdds(b.od)+' \u00b7 model said '+Math.round(b.p*100)+'%'+(r.note&&r.s!=='wait'?' \u00b7 '+esc(r.note):'')+'</div></div><div class="bres '+cls+'">'+txt+'</div><button type="button" class="del" data-del="'+esc(b.id)+'">Remove</button></div>';
+    }).join('')+'</article>';
+    html+='<p class="hint">'+(LSTORE==='db'?'Saved privately to your Claude account, so it survives reloads and new devices.':'Saved on this device only (your Claude account storage was not available here).')+' Results come from each refresh'+(RESULTS?' (latest results: '+new Date(RESULTS.generated_at).toLocaleString([],{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'})+')':' (not loaded yet)')+', so a bet can show "waiting" until the next one. Stakes are 1 unit per bet.</p>';
+    return html;
+  }
+
   /* ---------- page ---------- */
   function setControls(){
     var t=S.tab, props=(t==='best'||t==='probable'), inMatch=(t==='matches'&&S.match), list=(t==='matches'&&!S.match);
@@ -561,6 +705,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       keep={key:act.closest('[data-key]').dataset.key,field:act.dataset.field,pos:act.selectionStart};
     }
     var sp=SPORTS[S.sport];
+    var rec=(S.view==='record'); $('#recbtn').setAttribute('aria-pressed',String(rec)); $('#tabs').hidden=rec;
     if(sp.tabs.indexOf(S.tab)<0)S.tab=sp.tabs.indexOf('probable')>=0?'probable':sp.tabs[0];
     $('#sports').innerHTML=Object.keys(SPORTS).map(function(k){return '<button class="sport" data-sport="'+k+'" aria-pressed="'+(k===S.sport)+'">'+SPORTS[k].label+'</button>'}).join('');
     $('#tabs').innerHTML=sp.tabs.map(function(t){return '<button class="tab" role="tab" data-tab="'+t+'" aria-selected="'+(t===S.tab)+'">'+((sp.names&&sp.names[t])||TABNAME[t])+(t==='best'?'<span class="n" id="n-best">0</span>':'')+'</button>'}).join('');
@@ -568,6 +713,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     document.querySelectorAll('#g-side button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.side===S.side))});
     $('#target').disabled=(parseFloat(S.min)||0)>1;
     setControls(); counts();
+    if(rec){document.querySelector('.controls').hidden=true;$('#list').innerHTML=recordHTML();return;}
     var html='', list=$('#list'), min=parseFloat(S.min)||0;
     if(S.tab==='matches'){
       var mm=S.match&&cur.GAMES[S.match];
@@ -624,7 +770,10 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 
   document.addEventListener('click',function(ev){
     var t=ev.target.closest('button'); if(!t)return;
-    if(t.dataset.sport){switchSport(t.dataset.sport);}
+    if(t.id==='recbtn'){S.view=S.view==='record'?null:'record';render();window.scrollTo(0,0);}
+    else if(t.dataset.track){trackBet(t.dataset.track,t);}
+    else if(t.dataset.del){LEDGER=LEDGER.filter(function(b){return b.id!==t.dataset.del});ledgerSave();render();}
+    else if(t.dataset.sport){S.view=null;if(t.dataset.sport===S.sport)render();else switchSport(t.dataset.sport);}
     else if(t.dataset.tab){S.tab=t.dataset.tab;S.match=null;S.shown=PAGE;save();render();window.scrollTo(0,0);}
     else if(t.dataset.stat){S.stat=t.dataset.stat;S.shown=PAGE;save();render();}
     else if(t.dataset.side){S.side=t.dataset.side;save();render();}
@@ -663,7 +812,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       var line=hasLine(kind)?mLine(m,kind):null;
       if(v==null)delete S.rows[key]; else S.rows[key]={odds:v,line:line};
       save(); var e2=mEval(m,kind,sel,line);
-      opt.querySelector('.oedge').innerHTML=e2.ev!=null?edgePill(e2.ev,true):'<span class="meta">Break-even '+fmtOdds(e2.be)+'</span>';
+      opt.querySelector('.oedge').innerHTML=e2.ev!=null?edgePill(e2.ev,true)+trackBtn('m|'+key,e2.odds):'<span class="meta">Break-even '+fmtOdds(e2.be)+'</span>';
     }else if(f==='mline'){                              // handicap / total line
       var mk=inp.closest('.mk'), m2=cur.GAMES[mk.dataset.mid], k2=mk.dataset.kind, lk='ML|'+m2.id+'|'+k2;
       var lv=parseFloat(String(inp.value).replace(',','.'));
@@ -673,14 +822,14 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
         var line2=mLine(m2,k2), e3=mEval(m2,k2,opt.dataset.sel,line2);
         opt.querySelector('.olab').textContent=mLabel(m2,k2,opt.dataset.sel,line2);
         opt.querySelector('.opct').textContent=fmtPct(e3);
-        opt.querySelector('.oedge').innerHTML=e3.ev!=null?edgePill(e3.ev,true):'<span class="meta">Break-even '+fmtOdds(e3.be)+'</span>';
+        opt.querySelector('.oedge').innerHTML=e3.ev!=null?edgePill(e3.ev,true)+trackBtn('m|'+opt.dataset.key,e3.odds):'<span class="meta">Break-even '+fmtOdds(e3.be)+'</span>';
         var oi=opt.querySelector('input'); oi.value=e3.odds||'';
       });
     }else if(f==='oodds'){                              // outright odds
       var row=inp.closest('.orow'), key2=row.dataset.key, lgk=row.dataset.lg, tid=row.dataset.tid;
       if(v==null)delete S.rows[key2]; else S.rows[key2]={odds:v};
       save(); var t0=cur.d.outrights[lgk].teams.filter(function(t){return t.team_id===tid})[0], e4=oEval(lgk,t0,S.om);
-      row.querySelector('.oedge').innerHTML=e4.ev!=null?edgePill(e4.ev):'<span class="meta">Break-even '+fmtOdds(e4.be)+'</span>';
+      row.querySelector('.oedge').innerHTML=e4.ev!=null?edgePill(e4.ev)+trackBtn('o|'+key2,e4.odds):'<span class="meta">Break-even '+fmtOdds(e4.be)+'</span>';
     }
     later();
   });
@@ -785,6 +934,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     if(window.claude&&window.claude.use){window.claude.use('mcp').then(function(m){rmcp=m||null;rRender();},function(){});}
   }catch(e){}
 
-  loadSport(S.sport,function(){show(false);});
+  loadResults();
+  loadSport(S.sport,function(){show(false);ledgerLoad();});
 })();
 </script>

@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import requests
 
+from .nba_injury_adjust import KM, live_losses, load_talent
 from .nba_game_model import SD_MARGIN, SD_TOTAL, GameModel, add_rest, load_games
 from .features import (ABSENCE_WINDOW, FEATURES, ROTATION_MINUTES, absence_numbers, add_features,
                        load_player_games, rotation_snapshot)
@@ -66,6 +67,8 @@ def injury_list() -> dict[str, dict]:
 def add_game_predictions(games):
     """Game-level model: expected score for each team -> margin and total (the page turns these into
     moneyline / spread / total-points chances)."""
+    injuries = injury_list()
+    talent = load_talent()
     gg = add_rest(load_games())
     gm = GameModel().fit(gg, asof=pd.Timestamp.today().normalize())
     last = {}
@@ -75,8 +78,16 @@ def add_game_predictions(games):
         d = pd.Timestamp(g["date"])
         hb, ab = (int(t in last and (d - last[t]).days <= 1) for t in (g["home"], g["away"]))
         mh, ma = gm.expected_points(g["home"], g["away"], hb, ab)
+        # lineup adjustment: talent ruled out tonight moves the margin (home loses -> margin falls, away loses -> margin rises)
+        lh, oh = live_losses(g["home"], injuries, norm, talent)
+        la, oa = live_losses(g["away"], injuries, norm, talent)
+        dm = KM * (la - lh)
+        mh, ma = mh + dm / 2, ma - dm / 2
         g["nba"] = {"mu_home": round(mh, 1), "mu_away": round(ma, 1), "mu_margin": round(mh - ma, 2), "mu_total": round(mh + ma, 1),
-                    "sd_margin": SD_MARGIN, "sd_total": SD_TOTAL, "home_b2b": hb, "away_b2b": ab}
+                    "sd_margin": SD_MARGIN, "sd_total": SD_TOTAL, "home_b2b": hb, "away_b2b": ab,
+                    "adj_margin": round(dm, 2),
+                    "adj_notes": [{"player": n, "team": g["home"], "status": st, "pts": round(-KM * x, 1)} for n, st, x in oh if KM * x >= 0.1]
+                               + [{"player": n, "team": g["away"], "status": st, "pts": round(-KM * x, 1)} for n, st, x in oa if KM * x >= 0.1]}
 
 
 def main():
