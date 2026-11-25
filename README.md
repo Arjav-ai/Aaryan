@@ -93,3 +93,13 @@ spread of 15 / 19 points (measured out of sample). Playoff games are excluded (t
 picks the winner 68.8%, moneyline log-loss 0.592 vs 0.689 for a flat guess, spread 0.636 vs 0.711, total 0.639 vs 0.676;
 calibration tables printed alongside. The typical miss (15 points on the margin) is much larger than a bookmaker's because the model
 knows nothing about injuries or lineups. `tests/e2e/nba_game_check.py` checks the page's numbers against this Python model.
+
+### How precise is the NBA game model? (measured against the bookmaker)
+`python -m betsuggester.nba_lines` downloads DraftKings' pre-game spread / total / moneyline from ESPN for past games (1,281 of 1,580);
+`python -m betsuggester.nba_market_benchmark` compares our walk-forward predictions with them on the same unseen games
+(959 regular-season games since 2026-01-01). Result: typical margin miss 11.65 pts (bookmaker 10.93, flat guess 13.50); std of the
+miss 14.9 vs 14.0; winner picked 69.2% vs 71.5%; moneyline log-loss 0.592 vs 0.552. Regression of the outcome on line and model:
+model weight -0.14 +/- 0.22, i.e. nothing beyond the line. Pretend flat bets on every disagreement with the spread: -1.9% per bet
+(-0.6% at edge >= 10%); with ~1,000 bets the error bar is about +/-3%, so this cannot prove "no edge" but shows no sign of one.
+An earlier version of the page said the model was "well above what betting markets achieve" (~15 vs ~11-12): wrong, the bookmaker's own
+std of miss is ~14.0 on these games. Fixed.

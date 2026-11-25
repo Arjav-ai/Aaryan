@@ -23,7 +23,7 @@ def walk_forward(g, start, step=14, **kw):
         base_win = (train.home_pts > train.away_pts).mean()
         for r in test.itertuples(index=False):
             mh, ma = gm.expected_points(r.home, r.away, r.home_b2b, r.away_b2b)
-            out.append({"date": r.date, "mu_m": mh - ma, "mu_t": mh + ma, "margin": r.home_pts - r.away_pts, "total": r.home_pts + r.away_pts,
+            out.append({"game_id": r.game_id, "date": r.date, "mu_m": mh - ma, "mu_t": mh + ma, "margin": r.home_pts - r.away_pts, "total": r.home_pts + r.away_pts,
                         "base_m": base_m, "base_t": base_t, "base_win": base_win})
     return pd.DataFrame(out)
 
