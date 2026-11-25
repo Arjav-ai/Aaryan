@@ -1,5 +1,7 @@
 __pycache__/
 *.pyc
 .venv/
-data/
+data/cache/
+data/nba.sqlite
+data/*.tmp
 .env
