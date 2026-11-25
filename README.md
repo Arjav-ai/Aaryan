@@ -62,3 +62,9 @@ the page says so until then. Retro test: `python -m betsuggester.soccer_retro cl
 results -> regenerate predictions -> safety checks -> save database). It works from an empty copy of the repo in
 about 4 minutes. A scheduled Claude task runs it twice a day (5 pm and 12 am India time, started ~18 minutes early)
 and republishes the page only if the checks pass. The database is kept as text in `data/db_dump.sql` so git history stays small.
+
+### Refresh now button
+The page has a "Refresh now" button that starts the same scheduled refresh through the Claude Code Remote connector
+(`fire_trigger`). The schedule's id is hard-coded in `site/index.html` (`RF.trigger`): if the schedule is ever deleted
+and recreated, update that id and republish with `capabilities: {mcp: {servers: [{server: "Claude Code Remote", tools: ["fire_trigger"]}]}}`.
+Browser test with a stand-in connector: `tests/e2e/refresh.test.js` (30 checks).

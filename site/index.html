@@ -31,6 +31,15 @@ button,input,select{font:inherit;color:inherit}
 h1{font-family:var(--font-head);font-size:22px;letter-spacing:-.01em;margin:0}
 #asof{color:var(--muted);font-size:12.5px}
 .tabs{display:flex;gap:2px;margin-top:6px;overflow-x:auto}
+.bar-r{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.rbtn{padding:5px 12px;border:1px solid var(--line);border-radius:99px;background:var(--surface);font-weight:600;font-size:13px;cursor:pointer}
+.rbtn[disabled]{opacity:.6;cursor:default}
+.rpanel{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--accent-soft);font-size:13.5px;display:grid;gap:8px}
+.rpanel.good{background:var(--good-soft);color:var(--good)}
+.rpanel.bad{background:var(--bad-soft);color:var(--bad)}
+.rrow{display:flex;gap:8px;flex-wrap:wrap}
+.rrow button{padding:6px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:600}
+.rrow button.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .sports{display:flex;gap:6px;margin-top:8px}
 .sport{padding:5px 14px;border:1px solid var(--line);border-radius:99px;background:var(--surface);cursor:pointer;font-weight:600;font-size:13.5px}
 .sport[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
@@ -117,12 +126,13 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
 
 <div class="wrap">
   <header class="top">
-    <div class="bar"><h1>Prop Finder</h1><span id="asof">Loading&#8230;</span></div>
+    <div class="bar"><h1>Prop Finder</h1><div class="bar-r"><span id="asof">Loading&#8230;</span><button class="rbtn" id="rbtn" type="button" hidden>Refresh now</button></div></div>
     <div class="sports" id="sports" role="group" aria-label="Sport"></div>
     <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
   </header>
 
   <div class="notice" id="stale" hidden></div>
+  <div class="rpanel" id="rpanel" role="status" hidden></div>
 
   <section class="controls" aria-label="Filters">
     <div class="chips" id="stat-chips"></div>
@@ -586,6 +596,65 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     var prev=S.sport; S.sport=sport; S.tab='probable';
     loadSport(sport,function(){save();show(true);window.scrollTo(0,0);});
   }
+  /* ---------- Refresh now: starts the same refresh as the daily schedule ---------- */
+  var RF={server:'Claude Code Remote',tool:'fire_trigger',trigger:'trig_0167Fv1vujkW4gn7qbYy18dQ',cooldown:600000,key:'propfinder-refresh'};
+  var rmcp=null, ropen=false, rbusy=false, rmsg=null, rtimer=null;
+  function rLast(){try{return parseInt(localStorage.getItem(RF.key)||'0',10)||0}catch(e){return 0}}
+  function rSetLast(t){try{localStorage.setItem(RF.key,String(t))}catch(e){}}
+  function rWait(){return Math.max(0,RF.cooldown-(Date.now()-rLast()))}
+  function hhmm(t){return new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}
+  function dataAgeMin(){var d=cur&&cur.d;if(!d||!d.generated_at)return null;return Math.round((Date.now()-new Date(d.generated_at).getTime())/60000)}
+  function rError(code){
+    var T={
+      approval_required:'Claude needs your permission to start a refresh. Tap Refresh now again and choose Allow.',
+      consent_required:'Claude needs your permission to start a refresh. Tap Refresh now again and choose Allow.',
+      not_in_manifest:'Refresh now is not allowed for this page. Open the page in claude.ai, signed in to your account, and allow it when asked.',
+      not_granted:'Refresh now is not available in this view. Open the page in claude.ai, signed in to your account.',
+      capability_disabled:'Refresh now is not available in this view. Open the page in claude.ai, signed in to your account.',
+      capability_removed:'Refresh now is not available in this view. Open the page in claude.ai, signed in to your account.',
+      server_not_connected:'The Claude Code Remote connector is not available for your account, so this button cannot start a refresh. The daily refresh still runs.',
+      server_not_found:'The Claude Code Remote connector is not available for your account, so this button cannot start a refresh. The daily refresh still runs.',
+      selection_required:'Choose which Claude Code Remote connector to use when asked, then tap Refresh now again.',
+      needs_reauth:'Reconnect Claude Code Remote in Claude Settings, under Connectors, then try again.',
+      blocked_by_policy:'Your organization does not allow this button to start a refresh.',
+      tool_error:'Claude reported a problem starting the refresh. Try again in a few minutes. If it keeps failing, ask Claude to check the schedule.'
+    };
+    return {kind:'bad',text:T[code]||'Could not confirm that the refresh started. Wait two minutes and check the updated time at the top before trying again, so you do not start two runs.'};
+  }
+  function rRender(){
+    var b=$('#rbtn'),p=$('#rpanel'); if(!b||!p)return;
+    b.hidden=!rmcp; var wait=rWait();
+    b.disabled=rbusy||wait>0; b.textContent=wait>0?'Refresh started':'Refresh now';
+    var html='',kind='';
+    if(rbusy){html='<span>Starting the refresh\u2026</span>';}
+    else if(ropen){
+      var age=dataAgeMin();
+      html='<span>Start a refresh now? It takes about 5 minutes and uses a small part of your Claude usage.'+(age!==null&&age<60?' The data is only '+Math.max(age,0)+' minutes old.':'')+'</span><div class="rrow"><button type="button" class="primary" data-r="start">Start refresh</button><button type="button" data-r="cancel">Cancel</button></div>';
+    }else if(rmsg){html='<span>'+esc(rmsg.text)+'</span>';kind=rmsg.kind;}
+    else if(wait>0){html='<span>A refresh was started at '+hhmm(rLast())+'. This page updates by itself when it finishes (about 5 minutes). If nothing changes after 7 minutes, reload the page.</span>';kind='good';}
+    p.hidden=!html; p.className='rpanel'+(kind?' '+kind:''); p.innerHTML=html;
+    clearTimeout(rtimer); if(wait>0)rtimer=setTimeout(rRender,wait+500);
+  }
+  function rStart(){
+    if(rbusy||rWait()>0||!rmcp)return;
+    rbusy=true; rmsg=null; ropen=false; rRender();
+    var done=false;
+    rmcp.callTool(RF.server,RF.tool,{trigger_id:RF.trigger,text:'Run started from the Refresh now button on the page.'}).then(function(){
+      rSetLast(Date.now()); rbusy=false; rmsg=null; rRender();
+    },function(e){
+      rbusy=false; rmsg=rError(e&&e.code); rRender();
+    });
+  }
+  document.addEventListener('click',function(ev){
+    var t=ev.target.closest('button'); if(!t)return;
+    if(t.id==='rbtn'){if(rbusy||rWait()>0)return;ropen=!ropen;rmsg=null;rRender();}
+    else if(t.dataset.r==='cancel'){ropen=false;rRender();}
+    else if(t.dataset.r==='start'){rStart();}
+  });
+  try{
+    if(window.claude&&window.claude.use){window.claude.use('mcp').then(function(m){rmcp=m||null;rRender();},function(){});}
+  }catch(e){}
+
   loadSport(S.sport,function(){show(false);});
 })();
 </script>
