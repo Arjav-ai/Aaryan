@@ -127,3 +127,7 @@ Conference on top 8 and out only (its middle band is no better than flat). Clubs
 European matches in the data, so their numbers are less reliable.
 Every prop row (inside a match / game page, Best bets and Most probable) shows its last 5 games coloured against the line,
 with "N of 5 over/under L" updating as the line changes.
+
+## Offered line and verdict
+
+Every prop row has three boxes: Line offered, Over odds, Under odds. Type what the bookmaker shows and the page says in plain words how good the bet is (edge = model chance minus the chance the price needs). The line is shared by both sides. Verdict thresholds are judgement, not tested. Gaps over 15% are flagged as suspicious. Tests: tests/e2e/verdict.test.js.

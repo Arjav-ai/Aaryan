@@ -99,15 +99,23 @@ h1{font-family:var(--font-head);font-size:22px;letter-spacing:-.01em;margin:0}
 .l5 b.hit{background:var(--good-soft);color:var(--good)}
 .l5 b.miss{background:var(--bad-soft);color:var(--bad)}
 .srows{display:grid;gap:12px}
-.srow{display:grid;grid-template-columns:minmax(0,1fr) 72px 72px;gap:8px 10px;align-items:end;padding-top:12px;border-top:1px solid var(--line)}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) 58px 58px 58px;gap:8px 10px;align-items:end;padding-top:12px;border-top:1px solid var(--line)}
 .srow:first-child{border-top:0;padding-top:0}
 .spred{display:grid;gap:1px;min-width:0}
 .spred .slabel{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .spred b{font-family:var(--font-head);font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums}
 .spred .range{font-size:12px;color:var(--muted)}
 .sres{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;font-size:13px}
+.inputs3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:end}
+.oth{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;font-size:13px;align-items:center}
+.vbox{grid-column:1/-1}
+.verdict{padding:8px 10px;border-radius:8px;background:var(--bg);font-size:13px;line-height:1.4}
+.verdict.good{background:var(--good-soft);color:var(--good)}
+.verdict.bad{background:var(--bad-soft);color:var(--bad)}
+.verdict.warn{background:var(--warn-soft);color:var(--warn)}
 .srl5{grid-column:1/-1;flex-wrap:wrap}
-.srow .field input{padding:7px 8px}
+.srow .field input{padding:7px 6px}
+.srow .field>span{font-size:10.5px;letter-spacing:.02em}
 .gh{color:var(--ink);font-family:var(--font-head);font-size:15px;text-transform:none;letter-spacing:0;margin:14px 0 0}
 .mk{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
 .mk:first-of-type{border-top:0;padding-top:0}
@@ -202,14 +210,14 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     nba:{label:'NBA',file:'predictions.json',tabs:['matches','best','probable'],noun:'game',names:{matches:'Games'},about:[
       '<strong>The percentage</strong> is the model\'s chance that the player lands on your side of the line. Change the line to the one your bookmaker offers and it recalculates.',
       '<strong>Tested on past games</strong> the model had not seen: when it said 70\u201380% the prop hit about 73% of the time. Above 90% it hit between 86% and 94%, depending on the stat, so this page never shows more than 90%.',
-      '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. A positive number means the odds pay more than the model thinks the bet is worth. It is an estimate, not a promise.',
+      '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. A positive number means the odds pay more than the model thinks the bet is worth. It is an estimate, not a promise. The verdict words (strong value 8% and up, some value 3\u20138%, fair price within 3%, poor value, avoid) are my own cut-offs, and a gap over 15% is flagged as suspicious because it more often means the model is missing something than that you have found a bargain.',
       '<strong>Games:</strong> the game model predicts each team\'s score from attack and defence ratings, home court and back-to-backs. Tested on about 1,000 unseen regular-season games it picked the winner 69% of the time and its chances matched what happened (totals run slightly high). Against DraftKings\' pre-game lines on the same games it did slightly worse (typical margin miss 14.9 points against the bookmaker\'s 14.0) and it added nothing the line did not already contain. Betting every disagreement with the line would have lost about 2% per bet. The model now also adjusts for players ruled out or doubtful; on past games that trimmed the typical margin miss only from 11.65 to 11.54 points (bookmaker 10.93). So treat a gap between this page and your bookmaker as more likely a weakness in this model, which cannot see late injury news or how good a replacement is, than as a bargain.',
       '<strong>Not covered:</strong> the effect of a teammate being out (flagged on the card, not priced in). Top scorers outscored the model by about 0.7 points in testing. Real bookmaker lines have not been back-tested. Only one and a half seasons of games are in the data.']},
     football:{label:'Football',file:'predictions_soccer.json',tabs:['matches','best','probable','outrights'],noun:'match',about:[
       '<strong>Matches:</strong> tested on 1,400 matches the model had not seen, its win/draw/loss probabilities scored clearly better than a guess based on league averages, and home-win and handicap chances matched what happened. <strong>Total goals is the weakest market</strong> (it said 53% for over 2.5 goals; 56% happened).',
       '<strong>Players:</strong> chances assume the player plays. Line-ups come out about an hour before kick-off, so check he starts. Shots and shots on target were well calibrated over 28,000 test player-games; goals and assists are rare events, so those are rougher, and goals or assists lines above 0.5 were not tested.',
       '<strong>Outrights</strong> come from simulating the rest of each league 20,000 times. For the Champions League only the league phase is simulated (top 8, playoff, out); trophy chances are held back until the knockout draw has been made. The model uses last season too, so it can rate a team above one with more points this season. Test runs on last season were reasonable but small, so treat big favourites as less certain than shown. Nothing is shown above 90%.',
-      '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. It is an estimate, not a promise. Only suggestions: this page places nothing. Check what is legal where you are, and only stake money you can afford to lose.']}
+      '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. It is an estimate, not a promise. The verdict words on props (strong value 8% and up, some value 3\u20138%, fair price within 3%, poor value, avoid) are my own cut-offs, and a gap over 15% is flagged because it more often means the model is missing something than that you found a bargain. Only suggestions: this page places nothing. Check what is legal where you are, and only stake money you can afford to lose.']}
   };
   var TABNAME={matches:'Matches',best:'Best bets',probable:'Most probable',outrights:'Outrights'};
   var S={view:null,sport:'nba',tab:'probable',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{},ol:null,om:'title',match:null,mview:'props',mteam:'all',lg:'all'};
@@ -269,16 +277,50 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   function money(win,push,odds){var w=Math.min(win,CAP);return{win:w,capped:win>CAP,ev:odds?w*odds+push-1:null,be:w>0?(1-push)/w:null}}
 
   /* ---------- player props ---------- */
-  function evalRow(r,typ){
-    var st=S.rows[stateKey(r)]||{};
+  function oppo(sd){return sd==='over'?'under':'over'}
+  function evalRow(r,typ,side){
+    side=side||S.side;
+    var st=S.rows[r.base+'|'+side]||{}, so=S.rows[r.base+'|'+oppo(side)]||{};
     var minO=parseFloat(S.min)||0, unreachable=false, line;
     if(st.line!=null)line=st.line;
+    else if(so.line!=null)line=so.line;                 // the other side already has an offered line: share it
     else if(typ)line=typicalLine(r.mu);
     else if(minO>1){var ml=minLine(r.d,S.side,1/minO);line=ml.line;unreachable=!ml.ok;}
     else line=safeLine(r.d,S.side,S.target);
-    var pr=probs(r.d,line,S.side);
+    var pr=probs(r.d,line,side);
     var odds=(st.odds>1)?st.odds:null, m=money(pr.win,pr.push,odds);
-    return{line:line,unreachable:unreachable,win:m.win,capped:m.capped,push:pr.push,odds:odds,ev:m.ev,be:m.be,userLine:st.line!=null};
+    return{side:side,line:line,unreachable:unreachable,win:m.win,capped:m.capped,push:pr.push,odds:odds,ev:m.ev,be:m.be,userLine:st.line!=null};
+  }
+  function verdict(ev){                       // plain words for the edge; the thresholds are judgement, not tested
+    if(ev>=0.15)return{w:'Unusually large gap: check why',c:'warn'};
+    if(ev>=0.08)return{w:'Strong value',c:'good'};
+    if(ev>=0.03)return{w:'Some value',c:'good'};
+    if(ev>-0.03)return{w:'Fair price',c:''};
+    if(ev>-0.10)return{w:'Poor value',c:'bad'};
+    return{w:'Avoid',c:'bad'};
+  }
+  function cap(x){return x.charAt(0).toUpperCase()+x.slice(1)}
+  function pc(x){return (x>=0?'+':'\u2212')+Math.abs(Math.round(x*100))+'%'}
+  function othHTML(r,typ){                    // the side you are NOT currently looking at
+    var sd=oppo(S.side), e=evalRow(r,typ,sd);
+    return '<span class="pill">'+cap(sd)+' '+fmtLine(e.line)+': '+fmtPct(e)+'</span><span class="pill">Break-even '+fmtOdds(e.be)+'</span>'+(e.ev!=null?edgePill(e.ev)+trackBtn('p|'+r.base+'|'+sd,e.odds):'');
+  }
+  function verdictHTML(r,typ){
+    var a=evalRow(r,typ), b=evalRow(r,typ,oppo(S.side)), priced=[a,b].filter(function(x){return x.ev!=null});
+    if(!priced.length)return '';
+    priced.sort(function(x,y){return y.ev-x.ev});
+    var best=priced[0], v=verdict(best.ev), name=cap(best.side)+' '+fmtLine(best.line), need=Math.round(100/best.odds), cls=v.c;
+    var txt;
+    if(best.ev>=0.03){
+      txt='<strong>'+v.w+' on '+name+'</strong> at '+fmtOdds(best.odds)+' ('+pc(best.ev)+' edge). The model gives '+(best.capped?'90%+':Math.round(best.win*100)+'%')+', the price needs '+need+'%.'+
+        (best.ev>=0.15?' Gaps this big usually mean the model is missing something (an injury, a role change, a lineup). Check before you bet.':'')
+      if(priced.length===1)txt+=' Type the '+oppo(best.side)+' odds too to compare.';
+    }else if(priced.length===2){
+      txt=best.ev>-0.03?'<strong>Fair price</strong> on both sides: no edge either way.':'<strong>Neither side is worth it at these prices.</strong> The better one is '+name+' ('+pc(best.ev)+').';
+    }else{
+      txt='<strong>'+v.w+'</strong> on '+name+' at '+fmtOdds(best.odds)+' ('+pc(best.ev)+' edge). Type the '+oppo(best.side)+' odds too to compare.';
+    }
+    return '<div class="verdict '+cls+'">'+txt+'</div>';
   }
   function resHTML(r,e){
     var h='<span class="pill">Break-even odds '+fmtOdds(e.be)+'</span>';
@@ -311,10 +353,8 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       '<div class="meta">'+esc(r.unit)+' \u00b7 '+esc(p.team)+(p.home?' vs ':' at ')+esc(p.opp)+' \u00b7 '+esc(when(g))+'</div></div>'+
       '<div class="pct">'+pctHTML(e)+'</div></div>'+
       (badges?'<div class="badges">'+badges+'</div>':'')+
-      '<div class="inputs"><div class="side">'+(S.side==='over'?'Over':'Under')+'</div>'+
-      '<label class="field"><span>Line</span><input data-field="line" type="number" inputmode="decimal" step="0.5" min="0" value="'+e.line+'"></label>'+
-      '<label class="field"><span>Odds</span><input data-field="odds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="e.g. 1.85" value="'+(e.odds||'')+'"></label></div>'+
-      '<div class="res">'+resHTML(r,e)+'</div>'+
+      '<div class="inputs3"><label class="field"><span>Line offered</span><input data-field="line" type="number" inputmode="decimal" step="0.5" min="0" value="'+e.line+'"></label>'+oddsBoxes(r,e,false)+'</div>'+
+      '<div class="res">'+resHTML(r,e)+'</div><div class="oth">'+othHTML(r,false)+'</div>'+verdictBox(r,false)+
       '<div class="l5">'+l5HTML(r,e)+'</div>'+
       '<details><summary>Details</summary>'+notes+'</details></article>';
   }
@@ -322,12 +362,19 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     var h='<span class="pill">'+fmtPct(e)+' '+(S.side==='over'?'over':'under')+' '+fmtLine(e.line)+'</span><span class="pill">Break-even '+fmtOdds(e.be)+'</span>';
     return h+edgePill(e.ev)+trackBtn('p|'+stateKey(r),e.odds);
   }
+  function oddsBoxes(r,e,small){              // Over odds then Under odds, whichever side is selected
+    var e2=evalRow(r,small,oppo(S.side)), over=S.side==='over'?e:e2, under=S.side==='over'?e2:e;
+    var fo=S.side==='over'?'odds':'odds2', fu=S.side==='over'?'odds2':'odds';
+    var box=function(lab,fld,x){return '<label class="field"><span>'+lab+'</span><input data-field="'+fld+'" type="number" inputmode="decimal" step="0.01" min="1" placeholder="'+(small?'1.85':'e.g. 1.85')+'" value="'+(x.odds||'')+'"></label>'};
+    return box(small?'Over':'Over odds',fo,over)+box(small?'Under':'Under odds',fu,under);
+  }
+  function verdictBox(r,typ){return '<div class="vbox">'+verdictHTML(r,typ)+'</div>'}
   function srowHTML(r,e){
     var lo=qtile(r.d,0.1),hi=qtile(r.d,0.9);
     return '<div class="srow" data-key="'+esc(stateKey(r))+'" data-base="'+esc(r.base)+'"><div class="spred"><span class="slabel">'+esc(r.unit)+'</span><b>'+r.mu.toFixed(r.mu<1?2:1)+'</b><span class="range">likely '+lo+'\u2013'+hi+'</span></div>'+
       '<label class="field"><span>Line</span><input data-field="line" type="number" inputmode="decimal" step="0.5" min="0" value="'+e.line+'"></label>'+
-      '<label class="field"><span>Odds</span><input data-field="odds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="1.85" value="'+(e.odds||'')+'"></label>'+
-      '<div class="sres">'+sresHTML(r,e)+'</div><div class="l5 srl5">'+l5HTML(r,e)+'</div></div>';
+      oddsBoxes(r,e,true)+
+      '<div class="sres">'+sresHTML(r,e)+'</div><div class="oth">'+othHTML(r,true)+'</div>'+verdictBox(r,true)+'<div class="l5 srl5">'+l5HTML(r,e)+'</div></div>';
   }
   function playerCardHTML(p){
     var badges='';
@@ -354,10 +401,10 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       if(S.stat!=='all'&&r.stat!==S.stat)return;
       if(S.game!=='all'&&r.p.game!==S.game)return;
       if(q&&r.p.name.toLowerCase().indexOf(q)<0)return;
-      var e=evalRow(r);
+      var e=evalRow(r), e2=evalRow(r,false,oppo(S.side));
       if(S.tab==='probable'&&min&&((e.odds&&e.odds<min)||(!e.odds&&e.unreachable)))return;   // pays less than your minimum: hide
-      if(S.tab==='best'&&!e.odds)return;
-      out.push({r:r,e:e});
+      if(S.tab==='best'&&!e.odds&&!e2.odds)return;
+      out.push({r:r,e:e,e2:e2});
     });
     return out;
   }
@@ -561,7 +608,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   }
   function counts(){
     var good=0;
-    cur.ROWS.forEach(function(r){var e=evalRow(r);if(e.ev!=null&&e.ev>0)good++;});
+    cur.ROWS.forEach(function(r){var a=evalRow(r),b=evalRow(r,false,oppo(S.side));if((a.ev!=null&&a.ev>0)||(b.ev!=null&&b.ev>0))good++;});
     pricedExtras().forEach(function(x){if(x.ev>0)good++;});
     var n=$('#n-best'); if(n)n.textContent=good;
   }
@@ -733,8 +780,9 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       html=outrightsHTML();
     }else if(S.tab==='best'){
       var items=visible();
-      var good=items.filter(function(x){return x.e.ev>0}).map(function(x){return{ev:x.e.ev,html:cardHTML(x.r,x.e,false)}});
-      var bad=items.filter(function(x){return x.e.ev<=0}).map(function(x){return{ev:x.e.ev,html:cardHTML(x.r,x.e,true)}});
+      var bestEv=function(x){return Math.max.apply(null,[x.e.ev,x.e2.ev].filter(function(v){return v!=null}))};
+      var good=items.filter(function(x){return bestEv(x)>0}).map(function(x){return{ev:bestEv(x),html:cardHTML(x.r,x.e,false)}});
+      var bad=items.filter(function(x){return bestEv(x)<=0}).map(function(x){return{ev:bestEv(x),html:cardHTML(x.r,x.e,true)}});
       if(S.game==='all'&&!S.q&&S.stat==='all')pricedExtras().forEach(function(x){(x.ev>0?good:bad).push(x)});
       good.sort(function(a,b){return b.ev-a.ev}); bad.sort(function(a,b){return b.ev-a.ev});
       $('#hint').textContent='Every player in each game, with what the model predicts. "Likely" is the range he lands in 80% of games. Type your bookmaker\'s line and odds and the edge appears; worthwhile bets move to the top.';
@@ -798,18 +846,20 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   $('#list').addEventListener('input',function(ev){
     var inp=ev.target; if(!inp.dataset||!inp.dataset.field)return;
     var f=inp.dataset.field, v=num(inp.value);
-    if(f==='line'||f==='odds'){                         // player props
+    if(f==='line'||f==='odds'||f==='odds2'){            // player props
       var host=inp.closest('[data-key]'), sk=host.dataset.key, r=cur.ROWMAP[host.dataset.base];
       var typ=host.classList.contains('srow');
-      var shownLine=evalRow(r,typ).line;
-      var st=S.rows[sk]||(S.rows[sk]={});
-      if(v==null)delete st[f]; else st[f]=v;
+      var side=f==='odds2'?oppo(S.side):S.side, fld=f==='odds2'?'odds':f, key=r.base+'|'+side;
+      var shownLine=evalRow(r,typ,side).line;
+      var st=S.rows[key]||(S.rows[key]={});
+      if(v==null)delete st[fld]; else st[fld]=v;
+      if(fld==='line'&&v!=null){var ko=r.base+'|'+oppo(side);if(S.rows[ko])S.rows[ko].line=v;}   // Over and Under share the offered line
       if(st.odds!=null&&st.line==null)st.line=shownLine;   // odds belong to the line you saw when you typed them
-      if(st.line==null&&st.odds==null)delete S.rows[sk];
+      if(st.line==null&&st.odds==null)delete S.rows[key];
       save();
       var e=evalRow(r,typ);
-      if(typ){host.querySelector('.sres').innerHTML=sresHTML(r,e);host.querySelector('.srl5').innerHTML=l5HTML(r,e);}
-      else{host.querySelector('.pct').innerHTML=pctHTML(e);host.querySelector('.res').innerHTML=resHTML(r,e);host.querySelector('.l5').innerHTML=l5HTML(r,e);}
+      if(typ){host.querySelector('.sres').innerHTML=sresHTML(r,e);host.querySelector('.srl5').innerHTML=l5HTML(r,e);host.querySelector('.oth').innerHTML=othHTML(r,true);host.querySelector('.vbox').innerHTML=verdictHTML(r,true);}
+      else{host.querySelector('.pct').innerHTML=pctHTML(e);host.querySelector('.res').innerHTML=resHTML(r,e);host.querySelector('.oth').innerHTML=othHTML(r,false);host.querySelector('.vbox').innerHTML=verdictHTML(r,false);host.querySelector('.l5').innerHTML=l5HTML(r,e);}
     }else if(f==='modds'){                              // match market odds
       var opt=inp.closest('.opt'), m=cur.GAMES[opt.dataset.mid], kind=opt.dataset.kind, sel=opt.dataset.sel, key=opt.dataset.key;
       var line=hasLine(kind)?mLine(m,kind):null;
