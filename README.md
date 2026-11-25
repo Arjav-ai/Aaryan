@@ -68,3 +68,13 @@ The page has a "Refresh now" button that starts the same scheduled refresh throu
 (`fire_trigger`). The schedule's id is hard-coded in `site/index.html` (`RF.trigger`): if the schedule is ever deleted
 and recreated, update that id and republish with `capabilities: {mcp: {servers: [{server: "Claude Code Remote", tools: ["fire_trigger"]}]}}`.
 Browser test with a stand-in connector: `tests/e2e/refresh.test.js` (30 checks).
+
+### Football screens and crests
+Football > Matches is a list of upcoming matches (grouped by day, filter by league or team). Tapping a match opens its page:
+**Player props** (both teams, filter by team or stat) and **Match bets** (result, handicap, goals, both teams to score).
+Club crests are 96px PNGs from ESPN in `site/crests/<ESPN team id>.png`, downloaded by `python -m betsuggester.crests`
+and published with the page. A club with no crest shows an initials badge. The scheduled refresh republishes only the page
+and the two data files, so a brand-new club shows initials until the crests are published again by hand.
+Phone layout: the page leaves 44px under the status bar for the Claude app's floating buttons (`--chrome`), keeps its 16px
+side gutters on `.wrap`, and keeps the sticky header compact. Test: `tests/e2e/phone-layout.test.js`.
+Browser tests: `nba.test.js` (47), `football.test.js` (89), `refresh.test.js` (30), `started.test.js`.
