@@ -56,3 +56,9 @@ Browser tests: `tests/e2e/nba.test.js` (47 checks) and `tests/e2e/football.test.
 League phase only (top 8 / playoff 9-24 / out 25-36). Trophy chances are deliberately NOT shown until the knockout
 draw has been made: `soccer_predict.knockout_draw_done()` checks ESPN for knockout fixtures between named teams, and
 the page says so until then. Retro test: `python -m betsuggester.soccer_retro cl 2025-11-26`.
+
+## Automatic refresh
+`scripts/refresh.sh` does everything in one go (restore saved database -> download new NBA games and football
+results -> regenerate predictions -> safety checks -> save database). It works from an empty copy of the repo in
+about 4 minutes. A scheduled Claude task runs it twice a day (5 pm and 12 am India time, started ~18 minutes early)
+and republishes the page only if the checks pass. The database is kept as text in `data/db_dump.sql` so git history stays small.

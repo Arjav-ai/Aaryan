@@ -40,9 +40,10 @@ def main() -> int:
         try:
             d = json.loads(Path(path).read_text())
             age = age_hours(d)
-            if not d["games"]:
-                problems.append("no games")
-            check_players(d, min_players, problems)
+            if d["games"]:
+                check_players(d, min_players, problems)
+            else:
+                print(f"  note: {name} has no upcoming games right now (break / off-season): that is fine")
             if name == "Football":
                 for g in d["games"]:
                     if not 0.999 < sum(map(sum, g["grid"])) < 1.001:

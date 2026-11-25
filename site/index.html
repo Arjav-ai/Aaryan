@@ -423,6 +423,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     $('#g-game').hidden=(t==='outrights');
     $('#q-label').textContent=t==='matches'?'Team':'Player'; $('#q').placeholder=t==='matches'?'Search team':'Search name';
   }
+  function none(title,hint){return '<div class="empty">'+(cur.d.games.length?'<strong>'+title+'</strong>'+hint:'<strong>No upcoming games right now</strong>New games appear after the next refresh.')+'</div>'}
   function render(){
     var act=document.activeElement, keep=null;
     if(act&&act.dataset&&act.dataset.field&&act.closest('[data-key]')){
@@ -441,7 +442,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       var ms=matchesVisible();
       $('#hint').textContent='Chances from the match model. Type the odds you are offered on any option to see the edge.';
       html=ms.slice(0,S.shown).map(matchCardHTML).join('');
-      if(!ms.length)html='<div class="empty"><strong>No matches found</strong>Try another game or team.</div>';
+      if(!ms.length)html=none('No matches found','Try another game or team.');
       if(ms.length>S.shown)html+='<button class="more" id="more">Show more matches ('+(ms.length-S.shown)+' left)</button>';
     }else if(S.tab==='outrights'){
       $('#hint').textContent='';
@@ -458,7 +459,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       var groups=playersByGame(),total=0,shown=0,more=false;
       groups.forEach(function(gr){total+=gr.ps.length});
       html+='<h3>All players ('+total+')</h3>';
-      if(!total)html+='<div class="empty"><strong>No players match</strong>Try another game, stat or name.</div>';
+      if(!total)html+=none('No players match','Try another game, stat or name.');
       groups.forEach(function(gr){
         if(shown>=S.shown){more=true;return;}
         var slice=gr.ps.slice(0,S.shown-shown); shown+=slice.length; if(slice.length<gr.ps.length)more=true;
@@ -470,7 +471,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       its.sort(function(a,b){return b.e.win-a.e.win||b.e.line-a.e.line});
       $('#hint').textContent=min>1?'Each line is the most likely one that still pays at least '+min.toFixed(2)+' (break-even). Type your bookmaker\'s line and odds; props with odds under '+min.toFixed(2)+' are hidden.':'Ranked by chance of landing. Type the line and odds your bookmaker shows.';
       html=its.slice(0,S.shown).map(function(x){return cardHTML(x.r,x.e,false)}).join('');
-      if(!its.length)html='<div class="empty"><strong>No props match</strong>Try another game, stat or name.</div>';
+      if(!its.length)html=none('No props match','Try another game, stat or name.');
       if(its.length>S.shown)html+='<button class="more" id="more">Show more ('+(its.length-S.shown)+' left)</button>';
     }
     list.innerHTML=html;

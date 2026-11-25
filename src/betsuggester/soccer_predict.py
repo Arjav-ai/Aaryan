@@ -56,7 +56,7 @@ def main():
     last = matches.date.max()
     games = upcoming()
     if not games:
-        raise SystemExit("No upcoming football matches in the next week.")
+        print("No upcoming football matches in the next week (international break?): publishing outrights only.")
     print(f"results through {last.date()}; {len(games)} matches in the next {DAYS_AHEAD} days")
     tm = TeamModel().fit(matches, asof=pd.Timestamp.today().normalize())
 
@@ -87,7 +87,7 @@ def main():
                              "opp_id": oid, "team_goals": np.nan, "opp_goals": np.nan, "pos_c": np.nan, "_gid": g["id"]})
     upc = pd.DataFrame(rows)
     players = {}
-    for stat in STATS:
+    for stat in (STATS if rows else []):
         feats = add_features(pd.concat([hist, upc], ignore_index=True), stat)
         past = feats[~feats.match_id.astype(str).str.startswith("UPC_")].dropna(subset=REQUIRED)
         past = past[(past.games_prior >= 5) & (past.pos_code > 0) & (past.start_rate10 >= 0.5)]

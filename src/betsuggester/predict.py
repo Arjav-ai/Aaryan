@@ -66,7 +66,12 @@ def main():
     hist = load_player_games()
     games = upcoming_games()
     if not games:
-        raise SystemExit("No upcoming NBA games found right now.")
+        from .model import LINE_OFFSETS
+        print("No upcoming NBA games found right now: publishing an empty list.")
+        OUT.parent.mkdir(parents=True, exist_ok=True)
+        OUT.write_text(json.dumps({"generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
+                                   "data_through": str(hist.date.max().date()), "games": [], "labels": STAT_LABEL, "players": []}))
+        return
     injuries = injury_list()
     names = (hist.drop_duplicates(["team", "is_home"]).assign(full=lambda d: np.where(d.is_home == 1, d.home_team, d.away_team))
              .set_index("team")["full"].to_dict())
