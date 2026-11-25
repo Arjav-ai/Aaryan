@@ -44,6 +44,11 @@ def main() -> int:
                 check_players(d, min_players, problems)
             else:
                 print(f"  note: {name} has no upcoming games right now (break / off-season): that is fine")
+            if name == "NBA":
+                for g in d["games"]:
+                    n = g.get("nba")
+                    if not n or not all(math.isfinite(n[k]) for k in ("mu_home", "mu_away", "mu_margin", "mu_total")) or not (170 < n["mu_total"] < 270) or abs(n["mu_margin"]) > 30:
+                        problems.append(f"bad game numbers for {g['away']} at {g['home']}"); break
             if name == "Football":
                 for g in d["games"]:
                     if not 0.999 < sum(map(sum, g["grid"])) < 1.001:

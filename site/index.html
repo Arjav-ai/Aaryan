@@ -187,6 +187,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       '<strong>The percentage</strong> is the model\'s chance that the player lands on your side of the line. Change the line to the one your bookmaker offers and it recalculates.',
       '<strong>Tested on past games</strong> the model had not seen: when it said 70\u201380% the prop hit about 73% of the time. Above 90% it hit between 86% and 94%, depending on the stat, so this page never shows more than 90%.',
       '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. A positive number means the odds pay more than the model thinks the bet is worth. It is an estimate, not a promise.',
+      '<strong>Games:</strong> the game model predicts each team\'s score from attack and defence ratings, home court and back-to-backs. Tested on about 1,000 regular-season games it had not seen, it picked the winner 69% of the time and its moneyline, spread and total chances matched what happened (totals run slightly high). Its typical miss is about 15 points on the margin, well above what betting markets achieve, because it knows nothing about injuries or lineups. Treat it as a rough guide and expect real bookmaker lines to be sharper.',
       '<strong>Not covered:</strong> the effect of a teammate being out (flagged on the card, not priced in). Top scorers outscored the model by about 0.7 points in testing. Real bookmaker lines have not been back-tested. Only one and a half seasons of games are in the data.']},
     football:{label:'Football',file:'predictions_soccer.json',tabs:['matches','best','probable','outrights'],noun:'match',about:[
       '<strong>Matches:</strong> tested on 1,400 matches the model had not seen, its win/draw/loss probabilities scored clearly better than a guess based on league averages, and home-win and handicap chances matched what happened. <strong>Total goals is the weakest market</strong> (it said 53% for over 2.5 goals; 56% happened).',
@@ -365,30 +366,49 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     }
     return{win:win,push:push};
   }
+  /* NBA: the model gives an expected margin and total with a spread; scores are whole numbers so lines get a half-point correction */
+  function ncdf(z){var t=1/(1+0.2316419*Math.abs(z)),d=0.3989423*Math.exp(-z*z/2),p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));return z>0?1-p:p}
+  function pAbove(t,mu,sd){if(Number.isInteger(t)){var a=ncdf((t+.5-mu)/sd),b=ncdf((t-.5-mu)/sd);return{win:1-a,push:a-b}}return{win:1-ncdf((t-mu)/sd),push:0}}
+  function pBelow(t,mu,sd){if(Number.isInteger(t)){var a=ncdf((t-.5-mu)/sd),b=ncdf((t+.5-mu)/sd);return{win:a,push:b-a}}return{win:ncdf((t-mu)/sd),push:0}}
+  function nbaProb(m,kind,sel,line){
+    var g=m.nba;
+    if(kind==='ml'){var h=1-ncdf((.5-g.mu_margin)/g.sd_margin),a=ncdf((-.5-g.mu_margin)/g.sd_margin);return{win:(sel==='home'?h:a)/(h+a),push:0}}
+    if(kind==='spr'){var t=-line;return sel==='home'?pAbove(t,g.mu_margin,g.sd_margin):pBelow(t,g.mu_margin,g.sd_margin)}
+    return sel==='over'?pAbove(line,g.mu_total,g.sd_total):pBelow(line,g.mu_total,g.sd_total);
+  }
+  function gameProb(m,kind,sel,line){return m.grid?gridProb(m.grid,kind,sel,line):nbaProb(m,kind,sel,line)}
+  function hasLine(kind){return kind==='hcp'||kind==='tot'||kind==='spr'||kind==='ptot'}
   var MK_DEFAULT_LINE={hcp:0,tot:2.5};
-  function mLine(m,kind){var st=S.rows['ML|'+m.id+'|'+kind];return st&&st.line!=null?st.line:MK_DEFAULT_LINE[kind]}
+  function defLine(m,kind){                    // football: 0 / 2.5; NBA: near the model's own number so the chances start close to 50%
+    if(m.grid)return MK_DEFAULT_LINE[kind];
+    return kind==='spr'?-(Math.floor(m.nba.mu_margin)+0.5):Math.floor(m.nba.mu_total)+0.5;
+  }
+  function mLine(m,kind){var st=S.rows['ML|'+m.id+'|'+kind];return st&&st.line!=null?st.line:defLine(m,kind)}
   function mKey(m,kind,sel){return 'M|'+m.id+'|'+kind+'|'+sel}
   function mLabel(m,kind,sel,line){
+    if(kind==='ml')return tn(m,sel)+' to win';
+    if(kind==='spr'){var l2=sel==='home'?line:-line;return tn(m,sel)+' '+(l2>0?'+':'')+fmtLine(l2)}
+    if(kind==='ptot')return (sel==='over'?'Over ':'Under ')+fmtLine(line)+' points';
     if(kind==='1x2')return sel==='home'?m.home:sel==='away'?m.away:'Draw';
     if(kind==='hcp'){var l=sel==='home'?line:-line;return (sel==='home'?m.home:m.away)+' '+(l>0?'+':'')+fmtLine(l)}
     if(kind==='tot')return (sel==='over'?'Over ':'Under ')+fmtLine(line)+' goals';
     return sel==='yes'?'Both teams score':'Not both teams score';
   }
   function mEval(m,kind,sel,line){
-    var pr=gridProb(m.grid,kind,sel,line), st=S.rows[mKey(m,kind,sel)]||{};
-    var odds=(st.odds>1&&(kind==='1x2'||kind==='btts'||st.line===line))?st.odds:null;
+    var pr=gameProb(m,kind,sel,line), st=S.rows[mKey(m,kind,sel)]||{};
+    var odds=(st.odds>1&&(!hasLine(kind)||st.line===line))?st.odds:null;
     var x=money(pr.win,pr.push,odds);
     return{win:x.win,capped:x.capped,push:pr.push,odds:odds,ev:x.ev,be:x.be,line:line};
   }
   function optHTML(m,kind,sel){
-    var line=(kind==='hcp'||kind==='tot')?mLine(m,kind):null, e=mEval(m,kind,sel,line);
+    var line=hasLine(kind)?mLine(m,kind):null, e=mEval(m,kind,sel,line);
     return '<div class="opt" data-key="'+esc(mKey(m,kind,sel))+'" data-mid="'+esc(m.id)+'" data-kind="'+kind+'" data-sel="'+sel+'">'+
       '<span class="olab">'+esc(mLabel(m,kind,sel,line))+'</span><b class="opct">'+fmtPct(e)+'</b>'+
       '<input data-field="modds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="Odds" aria-label="Odds for '+esc(mLabel(m,kind,sel,line))+'" value="'+(e.odds||'')+'">'+
       '<span class="oedge">'+(e.ev!=null?edgePill(e.ev,true):'<span class="meta">Break-even '+fmtOdds(e.be)+'</span>')+'</span></div>';
   }
   function marketHTML(m,kind,title,sels){
-    var line=(kind==='hcp'||kind==='tot')?'<label class="field"><span>'+(kind==='hcp'?'Home line':'Goals line')+'</span><input data-field="mline" type="number" inputmode="decimal" step="0.5" value="'+mLine(m,kind)+'"></label>':'';
+    var line=hasLine(kind)?'<label class="field"><span>'+({hcp:'Home line',tot:'Goals line',spr:'Home spread',ptot:'Points line'}[kind])+'</span><input data-field="mline" type="number" inputmode="decimal" step="0.5" value="'+mLine(m,kind)+'"></label>':'';
     return '<div class="mk" data-key="ML|'+esc(m.id)+'|'+kind+'" data-mid="'+esc(m.id)+'" data-kind="'+kind+'"><div class="mk-head"><div class="mk-title">'+title+'</div>'+line+'</div><div class="opts'+(sels.length===3?' o3':'')+'">'+
       sels.map(function(s){return optHTML(m,kind,s)}).join('')+'</div></div>';
   }
@@ -403,16 +423,19 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     return out;
   }
   function pct1(p){return p>CAP?'90%+':(p<0.005?'<1%':Math.round(p*100)+'%')}
-  function matchProbs(m){return{home:gridProb(m.grid,'1x2','home').win,draw:gridProb(m.grid,'1x2','draw').win,away:gridProb(m.grid,'1x2','away').win}}
+  function matchProbs(m){
+    if(!m.grid){if(!m.nba)return null;return{home:nbaProb(m,'ml','home').win,away:nbaProb(m,'ml','away').win}}
+    return{home:gridProb(m.grid,'1x2','home').win,draw:gridProb(m.grid,'1x2','draw').win,away:gridProb(m.grid,'1x2','away').win}
+  }
   function dayLabel(g){try{return new Date(g.start).toLocaleDateString([],{weekday:'long',day:'numeric',month:'short'})}catch(e){return g.date}}
   function timeLabel(g){try{return new Date(g.start).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}catch(e){return ''}}
   function nPlayers(m){return cur.d.players.filter(function(p){return p.game===m.id}).length}
   function startN(p){var x=/(\d+) of last/.exec(p.tag||'');return x?+x[1]:0}
   function mrowHTML(m){
-    var np=nPlayers(m), pr=m.grid?matchProbs(m):null;
+    var np=nPlayers(m), pr=matchProbs(m);
     var nOut=outsOf(m,'home').length+outsOf(m,'away').length;
-    var foot=pr?'<span>Draw '+pct1(pr.draw)+'</span><span>Expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1)+'</span>'
-               :'<span>'+(nOut?nOut+' ruled out':'No one ruled out')+'</span>';
+    var foot=m.grid?'<span>Draw '+pct1(pr.draw)+'</span><span>Expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1)+'</span>'
+               :(m.nba?'<span>Predicted '+Math.round(m.nba.mu_away)+' \u2013 '+Math.round(m.nba.mu_home)+'</span>':'')+'<span>'+(nOut?nOut+' ruled out':'No one ruled out')+'</span>';
     return '<button type="button" class="mrow" data-open="'+esc(m.id)+'" aria-label="'+esc(tn(m,'away')+' at '+tn(m,'home')+': open')+'">'+
       '<div class="mmeta"><span>'+esc(timeLabel(m))+'</span><span>'+esc(m.league_name||'NBA')+'</span></div>'+
       order(m).map(function(sd){return '<div class="mline">'+crest(cid(m,sd),tn(m,sd),32)+'<span class="mname">'+esc(tn(m,sd))+'</span>'+(pr?'<b class="mpct">'+pct1(pr[sd])+'</b>':'')+'</div>'}).join('')+
@@ -425,12 +448,17 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     return out;
   }
   function detailHTML(m){
-    var football=!!m.grid; if(!football)S.mview='props';
+    var football=!!m.grid, bets=!!(m.grid||m.nba); if(!bets)S.mview='props';
     var xg=football?' \u00b7 expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1):'';
     var head='<div><button type="button" class="chip" data-back="1">\u2190 All '+nouns()+'</button></div>'+
       '<article class="card"><div class="dhead">'+order(m).map(function(sd,i){return (i?'<div class="dvs">'+(football?'v':'at')+'</div>':'')+'<div class="dteam">'+crest(cid(m,sd),tn(m,sd),56)+'<span>'+esc(tn(m,sd))+'</span></div>'}).join('')+'</div>'+
       '<div class="meta dmeta">'+esc(m.league_name||'NBA')+' \u00b7 '+esc(dayLabel(m))+' '+esc(timeLabel(m))+xg+'</div>'+
-      (football?'<div class="seg" role="group" aria-label="View"><button data-mv="props" aria-pressed="'+(S.mview==='props')+'">Player props</button><button data-mv="bets" aria-pressed="'+(S.mview==='bets')+'">Match bets</button></div>':'')+'</article>';
+      (bets?'<div class="seg" role="group" aria-label="View"><button data-mv="props" aria-pressed="'+(S.mview==='props')+'">Player props</button><button data-mv="bets" aria-pressed="'+(S.mview==='bets')+'">'+(football?'Match bets':'Game bets')+'</button></div>':'')+'</article>';
+    if(bets&&S.mview==='bets'&&!football){
+      var nb=m.nba, os=['away','home'];
+      return head+'<p class="hint">Chances from the game model: it predicts each team\'s score ('+Math.round(nb.mu_away)+' \u2013 '+Math.round(nb.mu_home)+'). It does not know about injuries, so check who is playing. Type the odds you are offered to see the edge.</p><article class="card" data-mcard="'+esc(m.id)+'">'+
+        marketHTML(m,'ml','Moneyline',os)+marketHTML(m,'spr','Spread',os)+marketHTML(m,'ptot','Total points',['over','under'])+'</article>';
+    }
     if(football&&S.mview==='bets'){
       return head+'<p class="hint">Chances from the match model. Type the odds you are offered on any option to see the edge.</p><article class="card" data-mcard="'+esc(m.id)+'">'+marketHTML(m,'1x2','Result',['home','draw','away'])+marketHTML(m,'hcp','Handicap',['home','away'])+
         marketHTML(m,'tot','Total goals',['over','under'])+marketHTML(m,'btts','Both teams to score',['yes','no'])+'</article>';
@@ -494,10 +522,10 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       var st=S.rows[k]; if(!(st.odds>1))return;
       var p=k.split('|');
       if(p[0]==='M'&&cur.d.games){
-        var m=cur.GAMES[p[1]]; if(!m||!m.grid)return;
-        var line=(p[2]==='hcp'||p[2]==='tot')?st.line:null; if((p[2]==='hcp'||p[2]==='tot')&&line==null)return;
-        var e=mEval(m,p[2],p[3],line); var pr=gridProb(m.grid,p[2],p[3],line), x=money(pr.win,pr.push,st.odds);
-        out.push({ev:x.ev,html:'<article class="card'+(x.ev>0?'':' dim')+'"><div class="head"><div class="who"><div class="name">'+esc(mLabel(m,p[2],p[3],line))+'</div><div class="meta">'+esc(m.home)+' v '+esc(m.away)+' \u00b7 '+esc(when(m))+'</div></div><div class="pct">'+(x.capped?'90%+':Math.round(x.win*100)+'%')+'<small>chance</small></div></div><div class="res"><span class="pill">Your odds '+fmtOdds(st.odds)+'</span><span class="pill">Break-even '+fmtOdds(x.be)+'</span>'+edgePill(x.ev)+'</div><div class="meta">Change it in Matches.</div></article>'});
+        var m=cur.GAMES[p[1]]; if(!m||!(m.grid||m.nba))return;
+        var line=hasLine(p[2])?st.line:null; if(hasLine(p[2])&&line==null)return;
+        var e=mEval(m,p[2],p[3],line); var pr=gameProb(m,p[2],p[3],line), x=money(pr.win,pr.push,st.odds);
+        out.push({ev:x.ev,html:'<article class="card'+(x.ev>0?'':' dim')+'"><div class="head"><div class="who"><div class="name">'+esc(mLabel(m,p[2],p[3],line))+'</div><div class="meta">'+esc(m.grid?m.home+' v '+m.away:tn(m,'away')+' at '+tn(m,'home'))+' \u00b7 '+esc(when(m))+'</div></div><div class="pct">'+(x.capped?'90%+':Math.round(x.win*100)+'%')+'<small>chance</small></div></div><div class="res"><span class="pill">Your odds '+fmtOdds(st.odds)+'</span><span class="pill">Break-even '+fmtOdds(x.be)+'</span>'+edgePill(x.ev)+'</div><div class="meta">Change it in '+(m.grid?'Matches':'Games')+'.</div></article>'});
       }else if(p[0]==='O'&&cur.d.outrights){
         var lg=cur.d.outrights[p[1]]; if(!lg)return;
         var t=lg.teams.filter(function(t){return t.team_id===p[2]})[0]; if(!t)return;
@@ -632,7 +660,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       else{host.querySelector('.pct').innerHTML=pctHTML(e);host.querySelector('.res').innerHTML=resHTML(r,e);host.querySelector('.l5').innerHTML=l5HTML(r,e);}
     }else if(f==='modds'){                              // match market odds
       var opt=inp.closest('.opt'), m=cur.GAMES[opt.dataset.mid], kind=opt.dataset.kind, sel=opt.dataset.sel, key=opt.dataset.key;
-      var line=(kind==='hcp'||kind==='tot')?mLine(m,kind):null;
+      var line=hasLine(kind)?mLine(m,kind):null;
       if(v==null)delete S.rows[key]; else S.rows[key]={odds:v,line:line};
       save(); var e2=mEval(m,kind,sel,line);
       opt.querySelector('.oedge').innerHTML=e2.ev!=null?edgePill(e2.ev,true):'<span class="meta">Break-even '+fmtOdds(e2.be)+'</span>';

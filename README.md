@@ -82,5 +82,14 @@ Browser tests: `nba.test.js` (47), `football.test.js` (89), `refresh.test.js` (3
 ### NBA games
 NBA > Games works like Football > Matches: a list of upcoming games with team logos (away team first), tap one for its
 page with every player's props for both teams, a "ruled out" notice per team, and team / stat filters. NBA has no game-level
-model, so the list shows no win percentages. Logos are `site/crests/nba/<code>.png` (30 teams, `python -m betsuggester.crests`).
+model, so the list shows no win percentages. (Superseded: see NBA game model below.) Logos are `site/crests/nba/<code>.png` (30 teams, `python -m betsuggester.crests`).
 Browser tests: `tests/e2e/nba-games.test.js` (38 checks).
+
+### NBA game model (moneyline / spread / total points)
+`src/betsuggester/nba_game_model.py` predicts each team's score from attack/defence ratings (ridge regression, 60-day memory),
+home court and back-to-backs, with a level adjustment from the last 35 days. Margin and total are treated as normal with a
+spread of 15 / 19 points (measured out of sample). Playoff games are excluded (they score ~15 points fewer).
+`python -m betsuggester.nba_game_backtest 2026-01-01` re-runs the walk-forward test (991 unseen regular-season games):
+picks the winner 68.8%, moneyline log-loss 0.592 vs 0.689 for a flat guess, spread 0.636 vs 0.711, total 0.639 vs 0.676;
+calibration tables printed alongside. The typical miss (15 points on the margin) is much larger than a bookmaker's because the model
+knows nothing about injuries or lineups. `tests/e2e/nba_game_check.py` checks the page's numbers against this Python model.

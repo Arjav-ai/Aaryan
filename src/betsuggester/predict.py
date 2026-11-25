@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import requests
 
+from .nba_game_model import SD_MARGIN, SD_TOTAL, GameModel, add_rest, load_games
 from .features import (ABSENCE_WINDOW, FEATURES, ROTATION_MINUTES, absence_numbers, add_features,
                        load_player_games, rotation_snapshot)
 from .model import STATS, fit_calibrated
@@ -62,9 +63,27 @@ def injury_list() -> dict[str, dict]:
     return out
 
 
+def add_game_predictions(games):
+    """Game-level model: expected score for each team -> margin and total (the page turns these into
+    moneyline / spread / total-points chances)."""
+    gg = add_rest(load_games())
+    gm = GameModel().fit(gg, asof=pd.Timestamp.today().normalize())
+    last = {}
+    for r in gg.itertuples(index=False):
+        last[r.home] = last[r.away] = r.date
+    for g in games:
+        d = pd.Timestamp(g["date"])
+        hb, ab = (int(t in last and (d - last[t]).days <= 1) for t in (g["home"], g["away"]))
+        mh, ma = gm.expected_points(g["home"], g["away"], hb, ab)
+        g["nba"] = {"mu_home": round(mh, 1), "mu_away": round(ma, 1), "mu_margin": round(mh - ma, 2), "mu_total": round(mh + ma, 1),
+                    "sd_margin": SD_MARGIN, "sd_total": SD_TOTAL, "home_b2b": hb, "away_b2b": ab}
+
+
 def main():
     hist = load_player_games()
     games = upcoming_games()
+    if games:
+        add_game_predictions(games)
     if not games:
         from .model import LINE_OFFSETS
         print("No upcoming NBA games found right now: publishing an empty list.")
