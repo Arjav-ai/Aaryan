@@ -40,7 +40,7 @@ async function fresh(b, opts={}) {
 
   // 4 game filter
   const opts = await p.locator('#game option').evaluateAll(o=>o.map(x=>[x.value,x.textContent]));
-  const nbaGames = JSON.parse(fs.readFileSync('/home/user/aaryan/data/predictions.json','utf8')).games.length;
+  const nbaGames = JSON.parse(fs.readFileSync('/home/user/aaryan/data/predictions.json','utf8')).games.filter(g=>Date.parse(g.start)>Date.now()).length;
   ok(`game dropdown has all ${nbaGames} games + All`, opts.length===nbaGames+1, String(opts.length));
   await p.selectOption('#game', opts[1][0]);
   const [away,, home] = opts[1][1].split(' ');

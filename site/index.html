@@ -546,6 +546,10 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   });
 
   function build(sport,d){
+    // Hide games that have already kicked off: their props are no longer bettable (also covers a stale file).
+    var now=Date.now(), live={};
+    d.games=d.games.filter(function(g){var ok=!g.start||Date.parse(g.start)>now;if(ok)live[g.id]=1;return ok});
+    d.players=d.players.filter(function(p){return live[p.game]});
     var c={d:d,ROWS:[],ROWMAP:{},GAMES:{},STATS:d.stats||STATS_NBA};
     d.games.forEach(function(g){c.GAMES[g.id]=g});
     d.players.forEach(function(p){

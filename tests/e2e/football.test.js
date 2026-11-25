@@ -19,7 +19,7 @@ const bad = async p => { const t = await p.locator('body').innerText(); const m 
   // ---- matches ----
   await p.click('button[data-tab=matches]'); await p.waitForSelector('.mk');
   const nm = await p.locator('article.card').count();
-  const nGames = JSON.parse(fs.readFileSync('/home/user/aaryan/data/predictions_soccer.json','utf8')).games.length;
+  const nGames = JSON.parse(fs.readFileSync('/home/user/aaryan/data/predictions_soccer.json','utf8')).games.filter(g=>Date.parse(g.start)>Date.now()).length;
   ok(`${nGames} matches listed (40 + show more)`, nm===Math.min(40,nGames), String(nm)); await p.click('#more'); ok('Show more matches', (await p.locator('article.card').count())===nGames);
   ok('prop-only controls hidden on Matches', !(await p.locator('#stat-chips').isVisible()) && !(await p.locator('#g-min').isVisible()) && await p.locator('#g-game').isVisible());
   // result probabilities add to ~100%

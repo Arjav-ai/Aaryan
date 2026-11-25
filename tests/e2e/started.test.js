@@ -1,0 +1,14 @@
+const { chromium } = require('playwright'); const fs=require('fs');
+(async()=>{const b=await chromium.launch(); const d=JSON.parse(fs.readFileSync('/home/user/aaryan/data/predictions.json','utf8'));
+const future=d.games.filter(g=>Date.parse(g.start)>Date.now());
+const first=future[0]; const nPlayersFirst=d.players.filter(p=>p.game===first.id).length;
+const mod={...d,games:d.games.map(g=>g.id===first.id?{...g,start:new Date(Date.now()-3600e3).toISOString()}:g)};
+const p=await (await b.newContext({viewport:{width:390,height:844}})).newPage(); const errs=[]; p.on('pageerror',e=>errs.push(String(e)));
+await p.route('**/predictions.json',r=>r.fulfill({json:mod})); await p.goto('http://localhost:8765/index.html'); await p.waitForSelector('.card');
+const opts=await p.locator('#game option').count();
+await p.click('button[data-tab=best]'); await p.waitForSelector('.srow');
+const total=await p.locator('h3').filter({hasText:/all players/i}).innerText();
+const expPlayers=d.players.filter(pl=>future.some(g=>g.id===pl.game&&g.id!==first.id)).length;
+console.log(`games in dropdown: ${opts-1} (expected ${future.length-1}) | players listed: ${total} (expected ${expPlayers}) | errors: ${JSON.stringify(errs)}`);
+console.log((opts-1===future.length-1 && total.includes('('+expPlayers+')') && !errs.length)?'PASS: a game that has started disappears from the page, with its players':'FAIL');
+await b.close();})();
