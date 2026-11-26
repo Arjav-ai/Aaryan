@@ -63,6 +63,11 @@ def ingest(first_month="202508"):
     conn = connect()
     have_players = {r[0] for r in conn.execute("SELECT DISTINCT match_id FROM soccer_player_games")}
     have_matches = {r[0] for r in conn.execute("SELECT match_id FROM soccer_matches")}
+    # Old months cannot hold new matches: start a week before the last saved match (the caller's month is the floor).
+    last = conn.execute("SELECT MAX(date) FROM soccer_matches").fetchone()[0]
+    if last:
+        s = dt.date.fromisoformat(last) - dt.timedelta(days=7)
+        first_month = max(first_month, f"{s.year}{s.month:02d}")
     for league, name in LEAGUES.items():
         new = 0
         for month, current in months(first_month):

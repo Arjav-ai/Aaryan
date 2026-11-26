@@ -36,6 +36,18 @@ h1{font-family:var(--font-head);font-size:22px;letter-spacing:-.01em;margin:0}
 .tabs{display:flex;gap:2px;margin-top:6px;overflow-x:auto}
 .rbtn{padding:5px 12px;border:1px solid var(--line);border-radius:99px;background:var(--surface);font-weight:600;font-size:13px;cursor:pointer}
 .rbtn[disabled]{opacity:.6;cursor:default}
+.lv{display:grid;gap:8px}
+.lrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.lrow:first-of-type{border-top:0}
+.lteams{display:grid;gap:6px;min-width:0}
+.lt{display:flex;align-items:center;gap:8px;min-width:0}
+.lt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lt b{margin-left:auto;font-variant-numeric:tabular-nums;font-size:17px}
+.lst{font-size:12.5px;color:var(--muted);text-align:right;white-space:nowrap}
+.lst.on{color:var(--bad);font-weight:700}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--bad);margin-right:5px;animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.rbtn .n{display:inline-block;min-width:16px;margin-left:5px;padding:0 5px;border-radius:99px;background:var(--bad);color:#fff;font-size:11px;line-height:16px}
 .rbtn[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .trk{padding:2px 10px;border:1px solid var(--accent);border-radius:99px;background:none;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer}
 .trk[disabled]{border-color:var(--line);color:var(--muted);cursor:default}
@@ -169,7 +181,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     <div class="bar"><h1>Prop Finder</h1><div class="sports" id="sports" role="group" aria-label="Sport"></div></div>
     <nav class="tabs" id="tabs" role="tablist" aria-label="Sections"></nav>
   </header>
-  <div class="statusrow"><span id="asof">Loading&#8230;</span><button class="rbtn" id="rbtn" type="button" hidden>Refresh now</button><button class="rbtn" id="recbtn" type="button" aria-pressed="false">Record</button></div>
+  <div class="statusrow"><span id="asof">Loading&#8230;</span><button class="rbtn" id="rbtn" type="button" hidden>Refresh now</button><button class="rbtn" id="livebtn" type="button" aria-pressed="false">Live</button><button class="rbtn" id="recbtn" type="button" aria-pressed="false">Record</button></div>
 
   <div class="notice" id="stale" hidden></div>
   <div class="rpanel" id="rpanel" role="status" hidden></div>
@@ -755,7 +767,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
       keep={key:act.closest('[data-key]').dataset.key,field:act.dataset.field,pos:act.selectionStart};
     }
     var sp=SPORTS[S.sport];
-    var rec=(S.view==='record'); $('#recbtn').setAttribute('aria-pressed',String(rec)); $('#tabs').hidden=rec;
+    var rec=(S.view==='record'), lvw=(S.view==='live'); $('#recbtn').setAttribute('aria-pressed',String(rec)); $('#livebtn').setAttribute('aria-pressed',String(lvw)); $('#tabs').hidden=rec||lvw;
     if(sp.tabs.indexOf(S.tab)<0)S.tab=sp.tabs.indexOf('probable')>=0?'probable':sp.tabs[0];
     $('#sports').innerHTML=Object.keys(SPORTS).map(function(k){return '<button class="sport" data-sport="'+k+'" aria-pressed="'+(k===S.sport)+'">'+SPORTS[k].label+'</button>'}).join('');
     $('#tabs').innerHTML=sp.tabs.map(function(t){return '<button class="tab" role="tab" data-tab="'+t+'" aria-selected="'+(t===S.tab)+'">'+((sp.names&&sp.names[t])||TABNAME[t])+(t==='best'?'<span class="n" id="n-best">0</span>':'')+'</button>'}).join('');
@@ -764,6 +776,7 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     $('#target').disabled=(parseFloat(S.min)||0)>1;
     setControls(); counts();
     if(rec){document.querySelector('.controls').hidden=true;$('#list').innerHTML=recordHTML();return;}
+    if(lvw){document.querySelector('.controls').hidden=true;$('#hint').textContent='';$('#list').innerHTML=liveHTML();return;}
     var html='', list=$('#list'), min=parseFloat(S.min)||0;
     if(S.tab==='matches'){
       var mm=S.match&&cur.GAMES[S.match];
@@ -822,6 +835,8 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
   document.addEventListener('click',function(ev){
     var t=ev.target.closest('button'); if(!t)return;
     if(t.id==='recbtn'){S.view=S.view==='record'?null:'record';render();window.scrollTo(0,0);}
+    else if(t.id==='livebtn'){S.view=S.view==='live'?null:'live';if(S.view==='live')loadLive();render();window.scrollTo(0,0);}
+    else if(t.dataset.lv==='update'){lvStart();}
     else if(t.dataset.track){trackBet(t.dataset.track,t);}
     else if(t.dataset.del){LEDGER=LEDGER.filter(function(b){return b.id!==t.dataset.del});ledgerSave();render();}
     else if(t.dataset.sport){S.view=null;if(t.dataset.sport===S.sport)render();else switchSport(t.dataset.sport);}
@@ -928,6 +943,59 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     var prev=S.sport; S.sport=sport; S.tab=SPORTS[sport].tabs[0];
     loadSport(sport,function(){save();show(true);window.scrollTo(0,0);});
   }
+  /* ---------- Live scores: the page cannot call score sites itself, so it reads live.json, which a quick run republishes ---------- */
+  var LV=null, lvTimer=null, LF={trigger:'trig_016A94reGVvY7Fo9xme6h1CL',cooldown:120000,key:'propfinder-live'}, lbusy=false, lmsg=null;
+  function lvLast(){try{return parseInt(localStorage.getItem(LF.key)||'0',10)||0}catch(e){return 0}}
+  function lvWait(){return Math.max(0,LF.cooldown-(Date.now()-lvLast()))}
+  function loadLive(cb){
+    fetch('live.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(d){
+      var changed=!LV||LV.generated_at!==d.generated_at; LV=d; liveBadge(); if(changed&&S.view==='live')render(); if(cb)cb();
+    }).catch(function(){liveBadge(); if(cb)cb();});
+  }
+  function liveCount(){return LV?LV.games.filter(function(g){return g.state==='in'}).length:0}
+  function liveBadge(){var b=$('#livebtn'); if(!b)return; var n=liveCount(); b.innerHTML='Live'+(n?'<span class="n">'+n+'</span>':'');}
+  function lvAge(){if(!LV)return null;return Math.round((Date.now()-new Date(LV.generated_at).getTime())/60000)}
+  function lvStatus(g){
+    if(g.state==='in')return '<span class="lst on"><i class="dot"></i>'+esc(g.sport==='nba'?(g.detail||'Live'):(g.clock||g.detail||'Live'))+'</span>';
+    if(g.state==='post')return '<span class="lst">'+esc(g.detail||'Final')+'</span>';
+    try{return '<span class="lst">'+esc(new Date(g.start).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'}))+'</span>'}catch(e){return ''}
+  }
+  function lvRow(g){
+    var pre=g.state==='pre', cid=function(sd){return g.sport==='nba'?'nba/'+g[sd+'_code']:g[sd+'_id']};
+    var win=g.state==='post'?(g.home_score>g.away_score?'home':g.away_score>g.home_score?'away':''):'';
+    var line=function(sd){return '<div class="lt">'+crest(cid(sd),g[sd],22)+'<span'+(win&&win!==sd?' style="color:var(--muted)"':'')+'>'+esc(g[sd])+'</span><b>'+(pre?'':g[sd+'_score'])+'</b></div>'};
+    return '<div class="lrow"><div class="lteams">'+line('away')+line('home')+'</div>'+lvStatus(g)+'</div>';
+  }
+  function liveHTML(){
+    var h='', age=lvAge(), wait=lvWait();
+    var top='<div class="rpanel'+(lmsg&&lmsg.kind?' '+lmsg.kind:'')+'" role="status"><span>'+
+      (lbusy?'Asking Claude for fresh scores\u2026':lmsg?esc(lmsg.text):wait>0?'Fresh scores were requested at '+hhmm(lvLast())+'. They appear here by themselves in about 1\u20132 minutes.':
+        (LV?'Scores as of '+hhmm(new Date(LV.generated_at).getTime())+(age>=1?' ('+age+' min ago)':'')+'. ':'No scores loaded yet. ')+'This page cannot watch games by itself: tap Update scores to fetch the latest.')+'</span>'+
+      '<div class="rrow"><button type="button" class="primary" data-lv="update"'+(lbusy||wait>0||!rmcp?' disabled':'')+'>Update scores</button></div></div>';
+    if(!LV)return top+'<div class="empty"><strong>No scores yet</strong>Tap Update scores, or wait for the next refresh.</div>';
+    var G=LV.games, groups=[['In play now','in'],['Finished','post'],['Coming up','pre']], any=false;
+    groups.forEach(function(gr){
+      var rows=G.filter(function(g){return g.state===gr[1]});
+      if(!rows.length)return; any=true;
+      if(gr[1]==='post')rows=rows.slice().sort(function(a,b){return b.start<a.start?-1:1});
+      var by={}; rows.forEach(function(g){(by[g.league_name]=by[g.league_name]||[]).push(g)});
+      h+='<h3>'+gr[0]+' ('+rows.length+')</h3>'+Object.keys(by).map(function(k){return '<article class="card lv"><div class="meta">'+esc(k)+'</div>'+by[k].map(lvRow).join('')+'</article>'}).join('');
+    });
+    if(!any)h+='<div class="empty"><strong>No games right now</strong>Nothing is live, finished or about to start in the last day.</div>';
+    if(!liveCount())h='<p class="hint">Nothing is in play at the moment.</p>'+h;
+    return top+h;
+  }
+  function lvStart(){
+    if(lbusy||lvWait()>0||!rmcp)return;
+    lbusy=true; lmsg=null; render();
+    rmcp.callTool(RF.server,RF.tool,{trigger_id:LF.trigger,text:'Run started from the Live scores button on the page.'}).then(function(){
+      try{localStorage.setItem(LF.key,String(Date.now()))}catch(e){}
+      lbusy=false; lmsg=null; render(); setTimeout(function(){if(S.view==='live')render()},LF.cooldown+500);
+    },function(e){lbusy=false; lmsg=rError(e&&e.code); lmsg.text=lmsg.text.replace(/refresh/g,'score update'); render();});
+  }
+  setInterval(function(){if(S.view==='live'&&!document.hidden)loadLive();},45000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.view==='live')loadLive();});
+
   /* ---------- Refresh now: starts the same refresh as the daily schedule ---------- */
   var RF={server:'Claude Code Remote',tool:'fire_trigger',trigger:'trig_0167Fv1vujkW4gn7qbYy18dQ',cooldown:600000,key:'propfinder-refresh'};
   var rmcp=null, ropen=false, rbusy=false, rmsg=null, rtimer=null;
@@ -984,10 +1052,10 @@ h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute
     else if(t.dataset.r==='start'){rStart();}
   });
   try{
-    if(window.claude&&window.claude.use){window.claude.use('mcp').then(function(m){rmcp=m||null;rRender();},function(){});}
+    if(window.claude&&window.claude.use){window.claude.use('mcp').then(function(m){rmcp=m||null;rRender();if(S.view==='live')render();},function(){});}
   }catch(e){}
 
-  loadResults();
+  loadResults(); loadLive();
   loadSport(S.sport,function(){show(false);ledgerLoad();});
 })();
 </script>

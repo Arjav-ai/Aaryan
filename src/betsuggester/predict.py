@@ -23,7 +23,7 @@ from .model import STATS, fit_calibrated
 ESPN = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba"
 OUT = Path("data/predictions.json")
 # ESPN abbreviation -> Basketball-Reference abbreviation (only the ones that differ)
-ESPN_TO_BBR = {"BKN": "BRK", "CHA": "CHO", "GS": "GSW", "NO": "NOP", "NY": "NYK", "PHX": "PHO", "SA": "SAS", "WSH": "WAS"}
+ESPN_TO_BBR = {"BKN": "BRK", "CHA": "CHO", "GS": "GSW", "NO": "NOP", "NY": "NYK", "PHX": "PHO", "SA": "SAS", "UTAH": "UTA", "WSH": "WAS"}
 STAT_LABEL = {"pts": "Points", "reb": "Rebounds", "ast": "Assists", "fg3": "Threes"}
 
 

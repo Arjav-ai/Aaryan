@@ -12,11 +12,19 @@ step() { echo; echo "=== $1"; }
 nba_ok=1; soccer_ok=1
 
 step "Restore saved database";   $PY -m betsuggester.dbtools restore || { echo "REFRESH FAILED: cannot restore database"; exit 1; }
-step "NBA: new games";           $PY -m betsuggester.ingest 2027 || { echo "NBA download failed"; nba_ok=0; }
-step "Football: new results";    $PY -m betsuggester.soccer_ingest 202508 || { echo "football download failed"; soccer_ok=0; }
-if [ $nba_ok = 1 ]; then step "NBA predictions";      $PY -m betsuggester.predict || { echo "NBA predictions failed (kept the previous ones)"; nba_ok=0; }; fi
-if [ $soccer_ok = 1 ]; then step "Football predictions"; $PY -m betsuggester.soccer_predict || { echo "football predictions failed (kept the previous ones)"; soccer_ok=0; }; fi
+# The two sports are independent, so they run side by side (about half the waiting time).
+tmp=$(mktemp -d)
+(
+  $PY -m betsuggester.ingest 2027 && $PY -m betsuggester.predict
+) > $tmp/nba.log 2>&1 && touch $tmp/nba.ok &
+(
+  $PY -m betsuggester.soccer_ingest 202508 && $PY -m betsuggester.soccer_predict
+) > $tmp/soccer.log 2>&1 && touch $tmp/soccer.ok &
+wait
+step "NBA: new games and predictions";      tail -n 12 $tmp/nba.log;    [ -f $tmp/nba.ok ] && nba_ok=1 || { echo "NBA refresh failed (kept the previous predictions)"; nba_ok=0; }
+step "Football: new results and predictions"; tail -n 12 $tmp/soccer.log; [ -f $tmp/soccer.ok ] && soccer_ok=1 || { echo "football refresh failed (kept the previous predictions)"; soccer_ok=0; }
 step "Recent results (for settling tracked bets)"; $PY -m betsuggester.results || echo "results file failed (tracked bets will wait for the next refresh)"
+step "Live scores (a few seconds)"; $PY -m betsuggester.live || echo "live scores failed (harmless)"
 step "Club crests (new clubs only)"; $PY -m betsuggester.crests || echo "crest download failed (harmless: the page shows initials badges)"
 step "Safety checks";            $PY -m betsuggester.check_outputs; chk=$?
 step "Save database";            $PY -m betsuggester.dbtools dump || echo "could not save the database copy (harmless)"

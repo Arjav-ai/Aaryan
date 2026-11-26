@@ -26,6 +26,6 @@ CREATE TABLE IF NOT EXISTS soccer_player_games (
 
 def connect(path: Path = DB_PATH) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, timeout=60)
     conn.executescript(SCHEMA)
     return conn

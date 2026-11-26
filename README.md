@@ -131,3 +131,9 @@ with "N of 5 over/under L" updating as the line changes.
 ## Offered line and verdict
 
 Every prop row has three boxes: Line offered, Over odds, Under odds. Type what the bookmaker shows and the page says in plain words how good the bet is (edge = model chance minus the chance the price needs). The line is shared by both sides. Verdict thresholds are judgement, not tested. Gaps over 15% are flagged as suspicious. Tests: tests/e2e/verdict.test.js.
+
+## Faster refresh and live scores
+
+- **Faster refresh:** the downloads now only look at months from the last saved game onward (they used to re-read the whole season), and NBA and football run side by side. Football predictions still take about 2 minutes, NBA about 1.
+- **Bug fixed:** the NBA step crashed whenever Utah played (ESPN calls them UTAH, Basketball-Reference UTA), which would have silently kept old NBA predictions.
+- **Live scores:** the **Live** button shows games in play, finished and coming up (NBA + all football leagues), with scores and the clock. A page cannot fetch from the internet itself, so scores come from `live.json`, written by `python -m betsuggester.live` (about 3 seconds) and republished. **Update scores** starts a quick run (scheduled task "Live scores for Prop Finder", no timer; 2-minute cooldown). The page re-reads the file every 45 seconds while Live is open, and the daily refresh also writes it. Tests: `tests/e2e/live.test.js`.
