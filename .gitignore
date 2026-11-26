@@ -5,3 +5,4 @@ data/cache/
 data/nba.sqlite
 data/*.tmp
 .env
+undefined/
