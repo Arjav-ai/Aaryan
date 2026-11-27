@@ -1,3 +1,4 @@
+require('./_setup');
 const { chromium } = require('playwright'); const fs=require('fs');
 (async()=>{const b=await chromium.launch(); const d=JSON.parse(fs.readFileSync('/home/user/aaryan/data/predictions.json','utf8'));
 const future=d.games.filter(g=>Date.parse(g.start)>Date.now());

@@ -1,3 +1,4 @@
+require('./_setup');
 const { chromium } = require('playwright'); const R=[]; const ok=(n,c,x='')=>R.push([c?'PASS':'FAIL',n,x]);
 (async()=>{const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:393,height:852},deviceScaleFactor:2}); const p=await ctx.newPage();
  await p.goto('http://localhost:8765/ios.html'); await p.waitForSelector('.card');

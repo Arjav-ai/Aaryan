@@ -1,3 +1,4 @@
+require('./_setup');
 const { chromium } = require('playwright');
 const fs = require('fs');
 const URL = 'http://localhost:8765/index.html';
@@ -28,7 +29,7 @@ const tile = async p => (await p.locator('.tile b').allInnerTexts());
   // ================= tracking through the real screens =================
   let p = await open(b, { db: true, results: { generated_at: new Date().toISOString(), days: 21, nba_stats:['pts','reb','ast','fg3'], football_stats:['shots','sot','goals','assists'], nba:[], football:[] } });
   ok('Record button visible', await p.locator('#recbtn').isVisible());
-  await p.click('#recbtn'); ok('empty Record page explains how to track', /Nothing tracked yet/.test(await p.locator('#list').innerText()) && !(await p.locator('#tabs').isVisible()));
+  await p.click('#recbtn'); ok('empty Record page explains how to track', /Nothing tracked yet/.test(await p.locator('#list').innerText()) && (await p.locator('.tab[aria-selected=true]').count())===0);
   await p.click('#recbtn'); ok('Record button toggles back to the tabs', await p.locator('#tabs').isVisible());
   const g = NBA.games.filter(x=>Date.parse(x.start)>Date.now())[0];
   await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow'); await p.locator('.mrow').first().click(); await p.waitForSelector('.srow');

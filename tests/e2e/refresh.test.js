@@ -1,3 +1,4 @@
+require('./_setup');
 const { chromium } = require('playwright'); const fs = require('fs');
 const URL = 'http://localhost:8765/index.html'; const R = []; const ok=(n,c,x='')=>R.push([c?'PASS':'FAIL',n,x]);
 const FAKE = mode => `window.__calls=[]; window.__mode=${JSON.stringify(mode)};

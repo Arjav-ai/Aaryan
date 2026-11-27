@@ -1,3 +1,4 @@
+require('./_setup');
 const { chromium } = require('playwright');
 const fs = require('fs');
 const URL = 'http://localhost:8765/index.html';

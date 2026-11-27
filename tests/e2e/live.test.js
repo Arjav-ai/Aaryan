@@ -1,3 +1,4 @@
+require('./_setup');
 const { chromium } = require('playwright');
 const fs = require('fs');
 const URL = 'http://localhost:8765/index.html';
@@ -28,7 +29,7 @@ async function open(b, live, claude=true) {
   ok('Shows the score and clock', /78/.test(txt) && /Q3 5:12/.test(txt) && /34'/.test(txt));
   ok('Finished and coming up sections', /FINISHED \(2\)/i.test(txt) && /COMING UP \(1\)/i.test(txt) && /Chelsea/.test(txt) && /Spurs/.test(txt));
   ok('Shows how old the scores are (2 min)', /Scores as of/.test(txt) && /2 min ago/.test(txt), txt.slice(0,160));
-  ok('Tabs hidden in live view', await p.locator('#tabs').isHidden());
+  ok('No section tab is highlighted while Live is open', (await p.locator('.tab[aria-selected=true]').count())===0);
   ok('Live button pressed state', (await p.locator('#livebtn').getAttribute('aria-pressed'))==='true');
   ok('No page errors', p.errs.length===0, p.errs.join('|'));
   // update button fires the live trigger, not the daily refresh

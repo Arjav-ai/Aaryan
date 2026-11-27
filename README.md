@@ -137,3 +137,10 @@ Every prop row has three boxes: Line offered, Over odds, Under odds. Type what t
 - **Faster refresh:** the downloads now only look at months from the last saved game onward (they used to re-read the whole season), and NBA and football run side by side. Football predictions still take about 2 minutes, NBA about 1.
 - **Bug fixed:** the NBA step crashed whenever Utah played (ESPN calls them UTAH, Basketball-Reference UTA), which would have silently kept old NBA predictions.
 - **Live scores:** the **Live** button shows games in play, finished and coming up (NBA + all football leagues), with scores and the clock. A page cannot fetch from the internet itself, so scores come from `live.json`, written by `python -m betsuggester.live` (about 3 seconds) and republished. **Update scores** starts a quick run (scheduled task "Live scores for Prop Finder", no timer; 2-minute cooldown). The page re-reads the file every 45 seconds while Live is open, and the daily refresh also writes it. Tests: `tests/e2e/live.test.js`.
+
+## Screen layout (v2)
+
+- Bottom bar (thumb reach): Games/Matches, Best bets, Most probable, Outrights (football), Live. **My bets** and **Help** are top right; NBA/Football is a big switch under the title.
+- First visit shows a three-step guide (dismissed for good with "Got it"; **Help** brings it back). The less-used filters (game, starting line) sit behind **More filters**; Over/Under, minimum odds, stat and search stay visible.
+- Inputs use 16px text so iPhone does not zoom in when you tap one; every button is at least 40px tall.
+- Tests: `tests/e2e/ux.test.js`. All e2e tests start with `require('./_setup')`, which makes the browser behave like a returning user (guide dismissed, filters open).

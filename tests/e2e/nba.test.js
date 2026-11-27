@@ -1,3 +1,4 @@
+require('./_setup');
 const { chromium } = require('playwright');
 const fs = require('fs');
 const URL = 'http://localhost:8765/index.html';
@@ -20,7 +21,7 @@ async function fresh(b, opts={}) {
   // 1 load
   ok('loads with no console/page errors', p.errs.length===0, JSON.stringify(p.errs));
   ok('shows 40 cards first', await cards(p).count()===40, String(await cards(p).count()));
-  ok('header shows data date + updated', /Results to .* updated/.test(await p.locator('#asof').innerText()), await p.locator('#asof').innerText());
+  ok('header shows data date + updated', /Updated /.test(await p.locator('#asof').innerText()), await p.locator('#asof').innerText());
   ok('no NaN/undefined text on first load', (await bad(p))==='', await bad(p));
 
   // 2 tabs
