@@ -100,12 +100,6 @@ def main(until: str | None = None):
     print(f"ACTIVE={active}")
 
 
-if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--until", help="ISO time live tracking runs until, or 'now' to switch it off")
-    main(ap.parse_args().until)
-
-
 # ---------- live box scores (for in-game props) ----------
 PATH = {"nba": "basketball/nba", "nfl": "football/nfl", "cfb": "football/college-football", "football": None}
 
@@ -163,3 +157,10 @@ def box_stats(sport: str, summary: dict, game: dict) -> dict:
         for r in parse_players(summary, m):
             out[norm(r["player"])] = {s: r[s] for s in ("shots", "sot", "goals", "assists")}
     return out
+
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--until", help="ISO time live tracking runs until, or 'now' to switch it off")
+    main(ap.parse_args().until)
