@@ -46,7 +46,7 @@ const calls = p => p.evaluate(()=>window.__calls);
   }
   // 5. the rest of the page still works with the button there
   p = await page(b); await p.click('button[data-sport=football]'); await p.waitForTimeout(900); await p.click('button[data-tab=matches]');
-  ok('sport switching and tabs unaffected', (await p.locator('.mrow').count())>0 && await p.locator('#rbtn').isVisible() && p.errs.length===0, JSON.stringify(p.errs));
+  ok('sport switching and tabs unaffected', (await p.locator('.mrow[data-open]').count())>0 && await p.locator('#rbtn').isVisible() && p.errs.length===0, JSON.stringify(p.errs));
   for (const w of [360,390,768,1280]) { const q = await page(b,{w}); await q.click('#rbtn'); const o = await q.evaluate(()=>document.documentElement.scrollWidth>innerWidth); ok(`no sideways scroll at ${w}px with the panel open`, !o); if(w===360) await q.screenshot({path:process.argv[2]+'/rf_open.png'}); await q.context().close(); }
   for (const [s,n,e] of R) console.log(s,'|',n,e?('| '+e):'');
   console.log('\n'+R.filter(r=>r[0]==='PASS').length+' passed, '+R.filter(r=>r[0]==='FAIL').length+' failed');

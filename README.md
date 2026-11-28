@@ -144,3 +144,10 @@ Every prop row has three boxes: Line offered, Over odds, Under odds. Type what t
 - First visit shows a three-step guide (dismissed for good with "Got it"; **Help** brings it back). The less-used filters (game, starting line) sit behind **More filters**; Over/Under, minimum odds, stat and search stay visible.
 - Inputs use 16px text so iPhone does not zoom in when you tap one; every button is at least 40px tall.
 - Tests: `tests/e2e/ux.test.js`. All e2e tests start with `require('./_setup')`, which makes the browser behave like a returning user (guide dismissed, filters open).
+
+## Games in play and live tracking
+
+- Started games no longer vanish: **Games** shows an *In play now* group at the top (score, clock, tap for a live card with the model's pre-game expectation). Props and bets stay closed once a game starts.
+- Scores come from two places and the page keeps the newer: `live.json` (published by a run) and a live database document `live/current` that a tracking run updates every ~2 minutes without republishing the page (the page subscribes with `onSnapshot`).
+- **Keep scores live (90 min)** starts the scheduled task "Live tracking for Prop Finder" (`src/betsuggester/live.py --until ...` + `ArtifactData set` in a loop, stops early when nothing is in play). A page cannot fetch scores itself, so a Claude run has to be active; each run uses part of the owner's Claude usage.
+- Tests: `tests/e2e/inplay.test.js`.

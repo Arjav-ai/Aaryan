@@ -32,7 +32,7 @@ const tile = async p => (await p.locator('.tile b').allInnerTexts());
   await p.click('#recbtn'); ok('empty Record page explains how to track', /Nothing tracked yet/.test(await p.locator('#list').innerText()) && (await p.locator('.tab[aria-selected=true]').count())===0);
   await p.click('#recbtn'); ok('Record button toggles back to the tabs', await p.locator('#tabs').isVisible());
   const g = NBA.games.filter(x=>Date.parse(x.start)>Date.now())[0];
-  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow'); await p.locator('.mrow').first().click(); await p.waitForSelector('.srow');
+  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow[data-open]'); await p.locator('.mrow[data-open]').first().click(); await p.waitForSelector('.srow');
   const row = p.locator('.srow').first(); ok('no Track button before odds are typed', (await row.locator('.trk').count())===0);
   await row.locator('[data-field=line]').fill('20.5'); await row.locator('[data-field=odds]').fill('2.0'); await p.waitForTimeout(250);
   ok('Track button appears once odds are typed', (await row.locator('.trk').count())===1 && /Track bet/.test(await row.locator('.trk').innerText()));
@@ -132,13 +132,13 @@ const tile = async p => (await p.locator('.tile b').allInnerTexts());
 
   // ================= storage fallbacks and failures =================
   p = await open(b, { claude: false, results });
-  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow'); await p.locator('.mrow').first().click(); await p.waitForSelector('.srow');
+  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow[data-open]'); await p.locator('.mrow[data-open]').first().click(); await p.waitForSelector('.srow');
   const r2 = p.locator('.srow').first(); await r2.locator('[data-field=line]').fill('15.5'); await r2.locator('[data-field=odds]').fill('1.9'); await p.waitForTimeout(250); await r2.locator('.trk').click(); await p.waitForTimeout(300);
   ok('without a Claude account store, tracking still works on this device', (await p.evaluate(()=>JSON.parse(localStorage.getItem('propfinder-ledger')||'[]'))).length===1);
   await p.click('#recbtn'); await p.waitForTimeout(300); ok('...and says so', /Saved on this device only/.test(await p.locator('#list').innerText()));
   await p.reload(); await p.waitForSelector('#list > *'); await p.waitForTimeout(700); await p.click('#recbtn'); await p.waitForTimeout(300); ok('...and keeps it after a reload', (await p.locator('.brow').count())===1);
   p = await open(b, { db: true, failWrite: true, results });
-  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow'); await p.locator('.mrow').first().click(); await p.waitForSelector('.srow');
+  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow[data-open]'); await p.locator('.mrow[data-open]').first().click(); await p.waitForSelector('.srow');
   const r3 = p.locator('.srow').first(); await r3.locator('[data-field=line]').fill('15.5'); await r3.locator('[data-field=odds]').fill('1.9'); await p.waitForTimeout(250); await r3.locator('.trk').click(); await p.waitForTimeout(500);
   await p.click('#recbtn'); await p.waitForTimeout(300);
   ok('if the account store refuses a write, the bet is kept on the device and the page says so', (await p.locator('.brow').count())===1 && /Saved on this device only/.test(await p.locator('#list').innerText()) && p.errs.length===0, JSON.stringify(p.errs));

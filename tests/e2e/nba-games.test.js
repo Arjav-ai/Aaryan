@@ -17,8 +17,8 @@ const outsOf = (g, home) => [...new Set(DATA.players.filter(p => p.game===g.id &
   ok('NBA tabs: Games / Best bets / Most probable', tabs.length===3 && /Games/.test(tabs[0]) && /Best bets/.test(tabs[1]) && /Most probable/.test(tabs[2]), tabs.join('|'));
 
   // ---- games list ----
-  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow');
-  const rows = await p.locator('.mrow').evaluateAll(rs => rs.map(r => ({ id: r.dataset.open, t: r.innerText, names: [...r.querySelectorAll('.mname')].map(x=>x.innerText) })));
+  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow[data-open]');
+  const rows = await p.locator('.mrow[data-open]').evaluateAll(rs => rs.map(r => ({ id: r.dataset.open, t: r.innerText, names: [...r.querySelectorAll('.mname')].map(x=>x.innerText) })));
   ok(`${games.length} upcoming games listed, in tip-off order`, JSON.stringify(rows.map(r=>r.id))===JSON.stringify(games.map(g=>g.id)), String(rows.length));
   ok('away team listed first, with full team names', rows.every((r,i)=>r.names[0]===games[i].away_name && r.names[1]===games[i].home_name), rows[0].names.join(' / '));
   ok('NBA list: no league chips / game dropdown, team search shown', !(await p.locator('#lg-chips').isVisible()) && !(await p.locator('#game').isVisible()) && await p.locator('#q').isVisible());
@@ -31,18 +31,18 @@ const outsOf = (g, home) => [...new Set(DATA.players.filter(p => p.game===g.id &
   for (const g of games) for (const c of [g.home,g.away]) if (!fs.existsSync(`/home/user/aaryan/site/crests/nba/${c}.png`)) ok(`logo file exists for ${c}`, false);
   ok('every team on the list has a logo file', !R.some(r=>r[0]==='FAIL'&&/logo file/.test(r[1])));
   await p.evaluate(()=>document.querySelectorAll('img.crest').forEach(i=>{i.loading='eager'})); await p.waitForTimeout(1200);
-  const loaded = await p.evaluate(()=>[...document.querySelectorAll('.mrow img.crest')].map(i=>i.complete&&i.naturalWidth>0));
+  const loaded = await p.evaluate(()=>[...document.querySelectorAll('.mrow[data-open] img.crest')].map(i=>i.complete&&i.naturalWidth>0));
   ok('logos actually load', loaded.length===2*games.length && loaded.every(Boolean), `${loaded.filter(Boolean).length}/${loaded.length}`);
   await p.fill('#q','miami'); await p.waitForTimeout(900);
-  const found = await p.locator('.mrow').count(); ok('team search by name finds the game', found===games.filter(g=>/miami/i.test(g.home_name+g.away_name)).length && found>=0, String(found));
-  await p.fill('#q','PHI'); await p.waitForTimeout(900); ok('team search by code works too (matches anywhere in the name or code)', (await p.locator('.mrow').count())===games.filter(g=>(g.home_name+g.away_name+g.home+g.away).toLowerCase().includes('phi')).length && (await p.locator('.mrow').count())>=1);
+  const found = await p.locator('.mrow[data-open]').count(); ok('team search by name finds the game', found===games.filter(g=>/miami/i.test(g.home_name+g.away_name)).length && found>=0, String(found));
+  await p.fill('#q','PHI'); await p.waitForTimeout(900); ok('team search by code works too (matches anywhere in the name or code)', (await p.locator('.mrow[data-open]').count())===games.filter(g=>(g.home_name+g.away_name+g.home+g.away).toLowerCase().includes('phi')).length && (await p.locator('.mrow[data-open]').count())>=1);
   await p.fill('#q','zzzz'); await p.waitForTimeout(900); ok('no match says "No games found"', /No games found/.test(await p.locator('#list').innerText()));
   await p.fill('#q',''); await p.waitForTimeout(900);
 
   // ---- a game page ----
   const idx = games.findIndex(g => DATA.players.filter(x=>x.game===g.id).length>10 && (outsOf(g,true).length+outsOf(g,false).length)>0);
   const gi = idx>=0 ? idx : 0, g = games[gi];
-  await p.locator('.mrow').nth(gi).click(); await p.waitForSelector('.srow');
+  await p.locator('.mrow[data-open]').nth(gi).click(); await p.waitForSelector('.srow');
   ok('game page: back button, two logos, Player props / Game bets switch', await p.locator('[data-back]').isVisible() && (await p.locator('.dhead .crest').count())===2 && (await p.locator('button[data-mv]').count())===2 && /Game bets/.test(await p.locator('button[data-mv=bets]').innerText()));
   ok('says "at" between the teams, away first', /at/.test(await p.locator('.dvs').innerText()) && (await p.locator('.dteam span').allInnerTexts()).join('|')===[g.away_name,g.home_name].join('|'));
   ok('list filters are hidden inside the game page', !(await p.locator('.controls').isVisible()));
@@ -83,7 +83,7 @@ const outsOf = (g, home) => [...new Set(DATA.players.filter(p => p.game===g.id &
   const dump = [];
   const combos = [['ml',null,'home','1.60'],['spr',-3.5,'home','1.91'],['spr',4,'away','1.95'],['spr',-7,'home','2.2'],['ptot',221.5,'over','1.9'],['ptot',230,'under','1.85'],['ptot',215.5,'over','1.4']];
   for (let i=0;i<combos.length;i++) {
-    await p.click('[data-back]'); await p.waitForSelector('.mrow'); await p.locator('.mrow').nth(i % games.length).click(); await p.waitForSelector('button[data-mv=bets]'); await p.click('button[data-mv=bets]'); await p.waitForSelector('.mk');
+    await p.click('[data-back]'); await p.waitForSelector('.mrow[data-open]'); await p.locator('.mrow[data-open]').nth(i % games.length).click(); await p.waitForSelector('button[data-mv=bets]'); await p.click('button[data-mv=bets]'); await p.waitForSelector('.mk');
     const c = p.locator('article[data-mcard]'); const mid = await c.getAttribute('data-mcard'); const [kind,line,sel,odds] = combos[i];
     if (line!==null) { await c.locator(`.mk[data-kind="${kind}"] [data-field=mline]`).fill(String(line)); await p.waitForTimeout(100); }
     await c.locator(`.opt[data-kind="${kind}"][data-sel="${sel}"] [data-field=modds]`).fill(odds); await p.waitForTimeout(100);
@@ -93,37 +93,37 @@ const outsOf = (g, home) => [...new Set(DATA.players.filter(p => p.game===g.id &
   }
   fs.writeFileSync(process.argv[2]+'/nbadump.json', JSON.stringify(dump));
   ok('no NaN in game bets', (await bad(p))==='', await bad(p));
-  { await p.click('[data-back]'); await p.waitForSelector('.mrow'); await p.locator('.mrow').nth(0).click(); await p.click('button[data-mv=bets]'); await p.waitForSelector('.mk');
+  { await p.click('[data-back]'); await p.waitForSelector('.mrow[data-open]'); await p.locator('.mrow[data-open]').nth(0).click(); await p.click('button[data-mv=bets]'); await p.waitForSelector('.mk');
     ok('odds typed for another line are cleared, and return with the line', (await p.locator('.opt[data-kind="ml"][data-sel="home"] [data-field=modds]').inputValue())==='1.6');
     await p.locator('.mk[data-kind="ptot"] [data-field=mline]').fill('300'); await p.waitForTimeout(150); ok('changing the total line clears odds typed for the old line', (await p.locator('.opt[data-kind="ptot"][data-sel="over"] [data-field=modds]').inputValue())===''); }
   await p.waitForTimeout(900);
   await p.click('button[data-tab=best]'); await p.waitForSelector('h3'); const bh = await p.locator('h3').allInnerTexts();
   ok('Best bets shows the priced game markets (worth / not worth)', bh.some(x=>/WORTH TAKING|NOT WORTH IT/i.test(x)), bh.slice(0,2).join(' | '));
   ok('Best bets labels them with team names and says "Change it in Games"', /Change it in Games/.test(await p.locator('#list').innerText()) && /at /.test(await p.locator('#list').innerText()));
-  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow'); await p.locator('.mrow').nth(gi).click(); await p.waitForSelector('.srow');
-  await p.click('[data-back]'); await p.waitForSelector('.mrow'); ok('Back returns to the full list', (await p.locator('.mrow').count())===games.length);
+  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow[data-open]'); await p.locator('.mrow[data-open]').nth(gi).click(); await p.waitForSelector('.srow');
+  await p.click('[data-back]'); await p.waitForSelector('.mrow[data-open]'); ok('Back returns to the full list', (await p.locator('.mrow[data-open]').count())===games.length);
   // the priced prop shows in Best bets
   await p.click('button[data-tab=best]'); await p.waitForSelector('h3'); ok('the prop priced inside the game appears in Best bets', (await p.locator('#list').innerText()).includes(first), first);
   // Games tab and the other tabs coexist
   await p.click('button[data-tab=probable]'); await p.waitForSelector('article.card .pct'); ok('Most probable still works', (await p.locator('article.card').count())>0);
-  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow'); ok('Games tab opens on the list (not a stale game page)', (await p.locator('[data-back]').count())===0);
+  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow[data-open]'); ok('Games tab opens on the list (not a stale game page)', (await p.locator('[data-back]').count())===0);
 
   // ---- switching sport lands on that sport's first tab ----
   await p.click('button[data-sport=football]'); await p.waitForTimeout(900);
-  ok('switching to Football lands on Matches', (await p.getAttribute('button[data-tab=matches]','aria-selected'))==='true' && (await p.locator('.mrow').count())>0 && (await p.locator('#lg-chips').isVisible()));
+  ok('switching to Football lands on Matches', (await p.getAttribute('button[data-tab=matches]','aria-selected'))==='true' && (await p.locator('.mrow[data-open]').count())>0 && (await p.locator('#lg-chips').isVisible()));
   await p.click('button[data-sport=nba]'); await p.waitForTimeout(900);
-  ok('switching back to NBA lands on Games', (await p.getAttribute('button[data-tab=matches]','aria-selected'))==='true' && (await p.locator('.mrow').count())===games.length && !(await p.locator('#lg-chips').isVisible()));
+  ok('switching back to NBA lands on Games', (await p.getAttribute('button[data-tab=matches]','aria-selected'))==='true' && (await p.locator('.mrow[data-open]').count())===games.length && !(await p.locator('#lg-chips').isVisible()));
   ok('NBA about text unchanged by football', /Tested on past games/.test(await p.evaluate(()=>document.querySelector('#about-list').textContent)));
 
   // ---- layout, missing logos, empty week ----
-  for (const w of [360,390,768,1280]) { const q=await (await b.newContext({viewport:{width:w,height:844}})).newPage(); await q.goto(URL); await q.waitForSelector('.card'); await q.click('button[data-tab=matches]'); await q.waitForSelector('.mrow'); let o=await q.evaluate(()=>document.documentElement.scrollWidth>innerWidth); await q.locator('.mrow').first().click(); await q.waitForSelector('.dhead'); o = o || await q.evaluate(()=>document.documentElement.scrollWidth>innerWidth); ok(`no sideways scroll at ${w}px (NBA list and game page)`, !o); await q.context().close(); }
-  const nl = await (await b.newContext({viewport:{width:390,height:844}})).newPage(); await nl.route('**/crests/nba/*.png', r=>r.abort()); await nl.goto(URL); await nl.waitForSelector('.card'); await nl.click('button[data-tab=matches]'); await nl.waitForSelector('.mrow'); await nl.evaluate(()=>document.querySelectorAll('img.crest').forEach(i=>{i.loading='eager'})); await nl.waitForTimeout(1200);
-  const ph = await nl.locator('.mrow .crest.ph').allInnerTexts(); ok('missing logos fall back to initials badges', ph.length===2*games.length && ph.every(t=>/^[A-Z0-9]{1,2}$/.test(t)), `${ph.length}: ${ph.slice(0,4).join(',')}`);
+  for (const w of [360,390,768,1280]) { const q=await (await b.newContext({viewport:{width:w,height:844}})).newPage(); await q.goto(URL); await q.waitForSelector('.card'); await q.click('button[data-tab=matches]'); await q.waitForSelector('.mrow[data-open]'); let o=await q.evaluate(()=>document.documentElement.scrollWidth>innerWidth); await q.locator('.mrow[data-open]').first().click(); await q.waitForSelector('.dhead'); o = o || await q.evaluate(()=>document.documentElement.scrollWidth>innerWidth); ok(`no sideways scroll at ${w}px (NBA list and game page)`, !o); await q.context().close(); }
+  const nl = await (await b.newContext({viewport:{width:390,height:844}})).newPage(); await nl.route('**/crests/nba/*.png', r=>r.abort()); await nl.goto(URL); await nl.waitForSelector('.card'); await nl.click('button[data-tab=matches]'); await nl.waitForSelector('.mrow[data-open]'); await nl.evaluate(()=>document.querySelectorAll('img.crest').forEach(i=>{i.loading='eager'})); await nl.waitForTimeout(1200);
+  const ph = await nl.locator('.mrow[data-open] .crest.ph').allInnerTexts(); ok('missing logos fall back to initials badges', ph.length===2*games.length && ph.every(t=>/^[A-Z0-9]{1,2}$/.test(t)), `${ph.length}: ${ph.slice(0,4).join(',')}`);
   const empty = await (await b.newContext({viewport:{width:390,height:844}})).newPage(); await empty.route('**/predictions.json', r=>r.fulfill({json:{...DATA, games:[], players:[]}})); await empty.goto(URL); await empty.waitForTimeout(900); await empty.click('button[data-tab=matches]'); await empty.waitForTimeout(300);
   ok('an empty week says there are no upcoming games', /No upcoming games right now/.test(await empty.locator('#list').innerText()));
   const old = await (await b.newContext({viewport:{width:390,height:844}})).newPage(); const oerr=[]; old.on('pageerror',e=>oerr.push(String(e)));
-  await old.route('**/predictions.json', r=>r.fulfill({json:{...DATA, games: DATA.games.map(({nba,...g})=>g)}})); await old.goto(URL); await old.waitForSelector('.card'); await old.click('button[data-tab=matches]'); await old.waitForSelector('.mrow');
-  await old.locator('.mrow').first().click(); await old.waitForSelector('.srow');
+  await old.route('**/predictions.json', r=>r.fulfill({json:{...DATA, games: DATA.games.map(({nba,...g})=>g)}})); await old.goto(URL); await old.waitForSelector('.card'); await old.click('button[data-tab=matches]'); await old.waitForSelector('.mrow[data-open]');
+  await old.locator('.mrow[data-open]').first().click(); await old.waitForSelector('.srow');
   ok('older data without game numbers still works (no win chances, no Game bets, props fine)', oerr.length===0 && (await old.locator('button[data-mv]').count())===0 && (await old.locator('.srow').count())>0);
   ok('...page errors with older data', oerr.length===0, JSON.stringify(oerr));
   for (const [s,n,e] of R) console.log(s,'|',n,e?('| '+e):'');

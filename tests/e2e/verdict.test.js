@@ -17,9 +17,9 @@ const upcoming = DATA => DATA.games.filter(g => Date.parse(g.start) > Date.now()
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 } }); const p = await ctx.newPage(); const errs = [];
   p.on('pageerror', e => errs.push(String(e))); p.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
-  await p.goto(URL); await p.waitForSelector('.card'); await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow');
+  await p.goto(URL); await p.waitForSelector('.card'); await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow[data-open]');
   const g = upcoming(NBA).find(x => NBA.players.filter(y=>y.game===x.id).length>10);
-  const gi = upcoming(NBA).indexOf(g); await p.locator('.mrow').nth(gi).click(); await p.waitForSelector('.srow');
+  const gi = upcoming(NBA).indexOf(g); await p.locator('.mrow[data-open]').nth(gi).click(); await p.waitForSelector('.srow');
   const plist = NBA.players.filter(x=>x.game===g.id);
   const info = async i => p.evaluate(i => { const row=[...document.querySelectorAll('.srow')][i]; return { name: row.closest('article.card').querySelector('.name').textContent, label: row.querySelector('.slabel').textContent }; }, i);
   const KEY = {Points:'pts',Rebounds:'reb',Assists:'ast',Threes:'fg3'};
@@ -86,7 +86,7 @@ const upcoming = DATA => DATA.games.filter(g => Date.parse(g.start) > Date.now()
   // ---- the Over/Under switch swaps which side is the main one, odds stay with their side
   { const row = p.locator('.srow').nth(7); const beforeUnder = await row.locator('[data-field=odds2]').inputValue();
     await p.click('button[data-tab=probable]'); await p.waitForSelector('article.card .pct'); await p.click('#side-under'); await p.waitForTimeout(400);
-    await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow'); await p.locator('.mrow').nth(gi).click(); await p.waitForSelector('.srow'); const r2 = p.locator('.srow').nth(7);
+    await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow[data-open]'); await p.locator('.mrow[data-open]').nth(gi).click(); await p.waitForSelector('.srow'); const r2 = p.locator('.srow').nth(7);
     ok('with the switch on Under, the Under box (now the main one) still holds the Under price', (await r2.locator('[data-field=odds]').inputValue())===beforeUnder && (await r2.locator('.field > span').evaluateAll(e=>e.map(x=>x.textContent.trim()))).join('|')==='Line|Over|Under');
     await p.click('button[data-tab=probable]'); await p.waitForSelector('article.card .pct'); await p.click('#side-over'); await p.waitForTimeout(300); }
 
@@ -99,12 +99,12 @@ const upcoming = DATA => DATA.games.filter(g => Date.parse(g.start) > Date.now()
   ok('no NaN / undefined anywhere', (await bad(p))==='', await bad(p));
 
   // ---- football props: same boxes, small numbers (0.5 lines)
-  await p.click('button[data-sport=football]'); await p.waitForTimeout(900); await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow');
-  const fg = upcoming(FB).find(x => FB.players.filter(y=>y.game===x.id).length>15); await p.locator('.mrow').nth(upcoming(FB).indexOf(fg)).click(); await p.waitForSelector('.srow');
+  await p.click('button[data-sport=football]'); await p.waitForTimeout(900); await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow[data-open]');
+  const fg = upcoming(FB).find(x => FB.players.filter(y=>y.game===x.id).length>15); await p.locator('.mrow[data-open]').nth(upcoming(FB).indexOf(fg)).click(); await p.waitForSelector('.srow');
   { const row = p.locator('.srow').first(); await row.locator('[data-field=line]').fill('0.5'); await row.locator('[data-field=odds]').fill('3.2'); await row.locator('[data-field=odds2]').fill('1.3'); await p.waitForTimeout(300);
     ok('football props rate both sides at a 0.5 line', (await row.locator('.verdict').count())===1 && /Over|Under|Neither|Fair/.test(await row.locator('.verdict').innerText()), (await row.locator('.verdict').innerText()).replace(/\n/g,' ').slice(0,100)); }
   ok('no page errors', errs.length===0, JSON.stringify(errs));
-  for (const w of [360,390,768,1280]) { const q=await (await b.newContext({viewport:{width:w,height:844}})).newPage(); await q.goto(URL); await q.waitForSelector('.card'); await q.click('button[data-tab=matches]'); await q.waitForSelector('.mrow'); await q.locator('.mrow').nth(gi).click(); await q.waitForSelector('.srow');
+  for (const w of [360,390,768,1280]) { const q=await (await b.newContext({viewport:{width:w,height:844}})).newPage(); await q.goto(URL); await q.waitForSelector('.card'); await q.click('button[data-tab=matches]'); await q.waitForSelector('.mrow[data-open]'); await q.locator('.mrow[data-open]').nth(gi).click(); await q.waitForSelector('.srow');
     const r = q.locator('.srow').first(); await r.locator('[data-field=line]').fill('15.5'); await r.locator('[data-field=odds]').fill('1.95'); await r.locator('[data-field=odds2]').fill('1.85'); await q.waitForTimeout(300);
     ok(`no sideways scroll with three boxes and a verdict at ${w}px`, !(await q.evaluate(()=>document.documentElement.scrollWidth>innerWidth))); if (w===360) await q.screenshot({path:process.argv[2]+'/verdict360.png'}); await q.context().close(); }
   for (const [s,n,e] of R) console.log(s,'|',n,e?('| '+e):'');

@@ -255,6 +255,10 @@ h3{margin:14px 0 0}
 .oth{border-top:1px solid var(--line);padding-top:8px;color:var(--muted)}
 .n[data-zero]{display:none}
 .rbtn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.live-h{display:flex;justify-content:space-between;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font-size:15px;color:var(--ink)}
+.live-h .meta{font-weight:400}
+.lvact{margin:0}
+.bigscore{text-align:center;font-family:var(--font-head);font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
 @media (max-width:370px){.srow{grid-template-columns:minmax(0,1fr) 58px 58px 58px}.tab,.dockbtn{font-size:10.5px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
@@ -340,7 +344,7 @@ h3{margin:14px 0 0}
   var FKEY='propfinder-filters-open', IKEY='propfinder-intro-seen';
   function lget(k){try{return localStorage.getItem(k)}catch(e){return null}}
   function lset(k,v){try{localStorage.setItem(k,v)}catch(e){}}
-  var S={intro:false,view:null,sport:'nba',tab:'probable',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{},ol:null,om:'title',match:null,mview:'props',mteam:'all',lg:'all'};
+  var S={lm:null,intro:false,view:null,sport:'nba',tab:'probable',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{},ol:null,om:'title',match:null,mview:'props',mteam:'all',lg:'all'};
   try{var saved=JSON.parse(localStorage.getItem(LS)||'{}');for(var k in saved)S[k]=saved[k];}catch(e){}
   if(!SPORTS[S.sport])S.sport='nba';
   S.shown=PAGE;
@@ -626,11 +630,53 @@ h3{margin:14px 0 0}
       order(m).map(function(sd){return '<div class="mline">'+crest(cid(m,sd),tn(m,sd),32)+'<span class="mname">'+esc(tn(m,sd))+'</span>'+(pr?'<b class="mpct">'+pct1(pr[sd])+'</b>':'')+'</div>'}).join('')+
       '<div class="mfoot">'+foot+'<span>'+(np?np+' players':'no player data')+' \u203a</span></div></button>';
   }
+  /* games that have started: scores come from live.json / the live tracker; props close at kick-off */
+  function inPlayList(){
+    var by={}, out=[], q=S.q.trim().toLowerCase();
+    if(LV)LV.games.forEach(function(g){if(g.sport===S.sport&&g.state==='in'){by[g.id]=g;}});
+    cur.d.started.forEach(function(m){if(!by[m.id])by[m.id]={sport:S.sport,id:String(m.id),state:'started',league_name:m.league_name||'NBA',league:m.league,start:m.start,home:m.home&&m.home.length>4?(m.home_name||m.home):(m.home_name||m.home),away:m.away_name||m.away,home_score:null,away_score:null,home_id:m.home_id,away_id:m.away_id,home_code:m.home,away_code:m.away,_m:m};});
+    Object.keys(by).forEach(function(k){var g=by[k];if(!q||(g.home+' '+g.away).toLowerCase().indexOf(q)>=0)if(S.lg==='all'||!g.league||g.league===S.lg)out.push(g)});
+    out.sort(function(a,b){return a.start<b.start?-1:1});
+    return out;
+  }
+  function lvCrest(g,sd){return crest(g.sport==='nba'?'nba/'+g[sd+'_code']:g[sd+'_id'],g[sd],32)}
+  function lvAgoText(){var a=lvAge();return a==null?'':a<1?'just now':a+' min ago'}
+  function inPlayHTML(){
+    var L=inPlayList(); if(!L.length)return '';
+    var tr=trackingOn();
+    var h='<h3 class="gh live-h"><span class="mlive"><i class="dot"></i>In play now</span><span class="meta">'+(LV?'scores '+lvAgoText():'scores not loaded')+(tr?' \u00b7 tracking on':'')+'</span></h3>';
+    if(!tr)h+='<div class="rrow lvact"><button type="button" class="primary" data-lv="track"'+(rmcp&&!lbusy&&trackWait()<=0?'':' disabled')+'>Keep these scores live (90 min)</button><button type="button" data-lv="update"'+(rmcp&&!lbusy&&lvWait()<=0?'':' disabled')+'>Update once</button></div>';
+    L.forEach(function(g){
+      var has=g.home_score!=null, st=g.state==='in'?'<span class="mlive"><i class="dot"></i>'+esc(g.sport==='nba'?(g.detail||'Live'):(g.clock||g.detail||'Live'))+'</span>':'<span>Started</span>';
+      h+='<button type="button" class="mrow" data-live="'+esc(g.id)+'"><div class="mmeta">'+st+'<span>'+esc(g.league_name||'')+'</span></div>'+
+        ['away','home'].map(function(sd){return '<div class="mline">'+lvCrest(g,sd)+'<span class="mname">'+esc(g[sd])+'</span>'+(has?'<b class="mscore">'+g[sd+'_score']+'</b>':'')+'</div>'}).join('')+
+        '<div class="mfoot"><span>'+(has?'':'Score not loaded yet')+'</span><span>Details \u203a</span></div></button>';
+    });
+    return h;
+  }
+  function liveDetailHTML(id){
+    var g=null; if(LV)LV.games.forEach(function(x){if(x.id===id)g=x}); 
+    var m=null; cur.d.started.forEach(function(x){if(String(x.id)===id)m=x});
+    if(!g&&m)g={sport:S.sport,id:id,state:'started',league_name:m.league_name||'NBA',home:m.home_name||m.home,away:m.away_name||m.away,home_score:null,away_score:null,home_id:m.home_id,away_id:m.away_id,home_code:m.home,away_code:m.away};
+    if(!g)return '<div class="empty"><strong>This game is no longer listed</strong>It may have finished. Open Live for final scores.</div>';
+    var has=g.home_score!=null, on=g.state==='in', fin=g.state==='post';
+    var stat=on?'<span class="mlive"><i class="dot"></i>'+esc(g.sport==='nba'?(g.detail||'Live'):(g.clock||g.detail||'Live'))+'</span>':fin?'<b>'+esc(g.detail||'Final')+'</b>':'Started';
+    var pre='';
+    if(m){var pr=matchProbs(m);
+      pre='<div class="meta dmeta">Before the start the model expected '+(m.grid?'goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1)+(pr?' \u00b7 win chances '+pct1(pr.home)+' / draw '+pct1(pr.draw)+' / '+pct1(pr.away):''):'a score of '+Math.round(m.nba.mu_away)+' \u2013 '+Math.round(m.nba.mu_home)+(pr?' \u00b7 win chances '+pct1(pr.away)+' / '+pct1(pr.home):''))+'.</div>';}
+    return '<div><button type="button" class="chip" data-back="1">\u2190 All '+nouns()+'</button></div>'+
+      '<article class="card"><div class="dhead">'+['away','home'].map(function(sd,i){return (i?'<div class="dvs">'+(g.sport==='football'?'v':'at')+'</div>':'')+'<div class="dteam">'+crest(g.sport==='nba'?'nba/'+g[sd+'_code']:g[sd+'_id'],g[sd],56)+'<span>'+esc(g[sd])+'</span></div>'}).join('')+'</div>'+
+      (has?'<div class="bigscore">'+g.away_score+' \u2013 '+g.home_score+'</div>':'<div class="bigscore">\u2013</div>')+
+      '<div class="meta dmeta">'+stat+' \u00b7 '+esc(g.league_name||'')+(LV?' \u00b7 scores '+lvAgoText():'')+'</div>'+pre+'</article>'+
+      '<div class="notice">Bets and props close when a game starts, so this page does not list them for a game in play. The chances above were made before the start.</div>'+
+      (on&&!trackingOn()?'<div class="rrow lvact"><button type="button" class="primary" data-lv="track"'+(rmcp&&!lbusy&&trackWait()<=0?'':' disabled')+'>Keep scores live (90 min)</button><button type="button" data-lv="update"'+(rmcp&&!lbusy&&lvWait()<=0?'':' disabled')+'>Update once</button></div>':'');
+  }
   function matchListHTML(){
-    var ms=matchesVisible(); if(!ms.length)return none('No '+nouns()+' found',cur.d.games.some(function(g){return g.league})?'Try another league or team.':'Try another team.');
+    var ip=inPlayHTML();
+    var ms=matchesVisible(); if(!ms.length&&ip)return ip+none('No '+nouns()+' found',''); if(!ms.length)return none('No '+nouns()+' found',cur.d.games.some(function(g){return g.league})?'Try another league or team.':'Try another team.');
     var out='',last='';
     ms.forEach(function(m){var d=dayLabel(m);if(d!==last){out+='<h3 class="gh">'+esc(d)+'</h3>';last=d;}out+=mrowHTML(m);});
-    return out;
+    return ip+out;
   }
   function adjHTML(m){
     var n=m.nba&&m.nba.adj_notes; if(!n||!n.length)return '<p class="hint">No injury adjustment: nobody on the injury list moves the numbers by more than 0.1 points.</p>';
@@ -858,7 +904,7 @@ h3{margin:14px 0 0}
 
   /* ---------- page ---------- */
   function setControls(){
-    var tb=S.tab, props=(tb==='best'||tb==='probable'), inMatch=(tb==='matches'&&S.match), list=(tb==='matches'&&!S.match);
+    var tb=S.tab, props=(tb==='best'||tb==='probable'), inMatch=(tb==='matches'&&(S.match||S.lm)), list=(tb==='matches'&&!S.match);
     $('#stat-chips').hidden=!props; $('#g-min').hidden=!props;
     $('#g-game').hidden=!(props||list);
     var open=props&&lget(FKEY)==='1', fb=$('#fbtn'), nf=(S.game!=='all'?1:0)+(Math.abs(S.target-0.8)>1e-9?1:0);
@@ -894,7 +940,8 @@ h3{margin:14px 0 0}
     if(S.tab==='matches'){
       var mm=S.match&&cur.GAMES[S.match];
       if(S.match&&!mm)S.match=null;
-      if(mm){
+      if(S.lm&&!mm){$('#hint').textContent='';html=liveDetailHTML(S.lm);}
+      else if(mm){
         $('#hint').textContent='';
         html=detailHTML(mm);
       }else{
@@ -957,13 +1004,15 @@ h3{margin:14px 0 0}
     else if(t.dataset.track){trackBet(t.dataset.track,t);}
     else if(t.dataset.del){LEDGER=LEDGER.filter(function(b){return b.id!==t.dataset.del});ledgerSave();render();}
     else if(t.dataset.sport){S.view=null;if(t.dataset.sport===S.sport)render();else switchSport(t.dataset.sport);}
-    else if(t.dataset.tab){S.tab=t.dataset.tab;S.match=null;S.shown=PAGE;save();render();window.scrollTo(0,0);}
+    else if(t.dataset.tab){S.tab=t.dataset.tab;S.match=null;S.lm=null;S.shown=PAGE;save();render();window.scrollTo(0,0);}
     else if(t.dataset.stat){S.stat=t.dataset.stat;S.shown=PAGE;save();render();}
     else if(t.dataset.side){S.side=t.dataset.side;save();render();}
     else if(t.dataset.ol){S.ol=t.dataset.ol;save();render();}
     else if(t.dataset.om){S.om=t.dataset.om;save();render();}
     else if(t.dataset.open){S.match=t.dataset.open;S.mview='props';S.mteam='all';render();window.scrollTo(0,0);}
-    else if(t.dataset.back){S.match=null;render();window.scrollTo(0,0);}
+    else if(t.dataset.back){S.match=null;S.lm=null;render();window.scrollTo(0,0);}
+    else if(t.dataset.live){S.lm=t.dataset.live;render();window.scrollTo(0,0);}
+    else if(t.dataset.lv==='track'){trackStart();}
     else if(t.dataset.mv){S.mview=t.dataset.mv;render();}
     else if(t.dataset.mt){S.mteam=t.dataset.mt;render();}
     else if(t.dataset.lg){S.lg=t.dataset.lg;render();}
@@ -1022,6 +1071,7 @@ h3{margin:14px 0 0}
   function build(sport,d){
     // Hide games that have already kicked off: their props are no longer bettable (also covers a stale file).
     var now=Date.now(), live={};
+    d.started=d.games.filter(function(g){return g.start&&Date.parse(g.start)<=now&&now-Date.parse(g.start)<6*36e5});
     d.games=d.games.filter(function(g){var ok=!g.start||Date.parse(g.start)>now;if(ok)live[g.id]=1;return ok});
     d.players=d.players.filter(function(p){return live[p.game]});
     var c={d:d,ROWS:[],ROWMAP:{},GAMES:{},STATS:d.stats||STATS_NBA};
@@ -1047,7 +1097,7 @@ h3{margin:14px 0 0}
     else n.hidden=true;
     $('#about-list').innerHTML=SPORTS[S.sport].about.map(function(t){return '<li>'+t+'</li>'}).join('');
   }
-  function show(reset){cur=C[S.sport];S.match=null;S.lg='all';if(reset){S.game='all';S.stat='all';S.q='';$('#q').value='';}S.shown=PAGE;chrome();render();}
+  function show(reset){cur=C[S.sport];S.match=null;S.lm=null;S.lg='all';if(reset){S.game='all';S.stat='all';S.q='';$('#q').value='';}S.shown=PAGE;chrome();render();}
   function loadSport(sport,done){
     if(C[sport]){done();return;}
     fetch(SPORTS[sport].file).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(d){build(sport,d);done();}).catch(function(){
@@ -1061,13 +1111,28 @@ h3{margin:14px 0 0}
     loadSport(sport,function(){save();show(true);window.scrollTo(0,0);});
   }
   /* ---------- Live scores: the page cannot call score sites itself, so it reads live.json, which a quick run republishes ---------- */
-  var LV=null, lvTimer=null, LF={trigger:'trig_016A94reGVvY7Fo9xme6h1CL',cooldown:120000,key:'propfinder-live'}, lbusy=false, lmsg=null;
+  var LV=null, lvTimer=null, LF={track:'trig_0158WZiXw3yghvKLSPm1eBCA',trigger:'trig_016A94reGVvY7Fo9xme6h1CL',cooldown:120000,key:'propfinder-live'}, lbusy=false, lmsg=null;
   function lvLast(){try{return parseInt(localStorage.getItem(LF.key)||'0',10)||0}catch(e){return 0}}
   function lvWait(){return Math.max(0,LF.cooldown-(Date.now()-lvLast()))}
   function loadLive(cb){
     fetch('live.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(d){
-      var changed=!LV||LV.generated_at!==d.generated_at; LV=d; liveBadge(); if(changed&&S.view==='live')render(); if(cb)cb();
+      setLV(d); if(cb)cb();
     }).catch(function(){liveBadge(); if(cb)cb();});
+  }
+  function setLV(d){                       // keep whichever copy (file or live database) is newer
+    if(!d||!d.games)return;
+    if(LV&&Date.parse(d.generated_at)<Date.parse(LV.generated_at))return;
+    var changed=!LV||LV.generated_at!==d.generated_at||LV.tracking_until!==d.tracking_until; LV=d; liveBadge();
+    if(changed&&(S.view==='live'||(S.tab==='matches'&&!S.view&&cur&&!S.match)||S.lm)){var a=document.activeElement; if(!(a&&a.id==='q'))render();}
+  }
+  function trackingOn(){return !!(LV&&LV.tracking_until&&Date.parse(LV.tracking_until)>Date.now());}
+  function trackWait(){try{return Math.max(0,300000-(Date.now()-(parseInt(localStorage.getItem('propfinder-track')||'0',10)||0)))}catch(e){return 0}}
+  function liveDb(){
+    try{var c=window.claude; if(!(c&&c.use))return;
+      c.use('db').then(function(db){ if(!db||!db.doc)return; var ref=db.doc('live/current'); if(!ref.onSnapshot)return;
+        ref.onSnapshot(function(snap){ if(snap&&snap.exists){ try{setLV(JSON.parse(JSON.stringify(snap.data())));}catch(e){} } },function(){});
+      },function(){});
+    }catch(e){}
   }
   function liveCount(){return LV?LV.games.filter(function(g){return g.state==='in'}).length:0}
   function liveBadge(){var b=$('#livebtn'); if(!b)return; var n=liveCount(); b.innerHTML='<span class="ico">'+ICON.live+'</span><span class="lab">Live</span>'+(n?'<span class="n">'+n+'</span>':'');}
@@ -1085,10 +1150,11 @@ h3{margin:14px 0 0}
   }
   function liveHTML(){
     var h='', age=lvAge(), wait=lvWait();
+    var tr=trackingOn(), tw=trackWait();
     var top='<div class="rpanel'+(lmsg&&lmsg.kind?' '+lmsg.kind:'')+'" role="status"><span>'+
-      (lbusy?'Asking Claude for fresh scores\u2026':lmsg?esc(lmsg.text):wait>0?'Fresh scores were requested at '+hhmm(lvLast())+'. They appear here by themselves in about 1\u20132 minutes.':
-        (LV?'Scores as of '+hhmm(new Date(LV.generated_at).getTime())+(age>=1?' ('+age+' min ago)':'')+'. ':'No scores loaded yet. ')+'This page cannot watch games by itself: tap Update scores to fetch the latest.')+'</span>'+
-      '<div class="rrow"><button type="button" class="primary" data-lv="update"'+(lbusy||wait>0||!rmcp?' disabled':'')+'>Update scores</button></div></div>';
+      (lbusy?'Starting\u2026':lmsg?esc(lmsg.text):tr?'<b>Live tracking is on</b> until '+hhmm(Date.parse(LV.tracking_until))+'. Scores as of '+hhmm(Date.parse(LV.generated_at))+(age>=1?' ('+age+' min ago)':'')+' and refresh about every 2 minutes.':wait>0?'Fresh scores were requested at '+hhmm(lvLast())+'. They appear here by themselves in about 1\u20132 minutes.':
+        (LV?'Scores as of '+hhmm(Date.parse(LV.generated_at))+(age>=1?' ('+age+' min ago)':'')+'. ':'No scores loaded yet. ')+'This page cannot watch games by itself. Start live tracking while a game is on, or update once.')+'</span>'+
+      (tr?'':'<div class="rrow"><button type="button" class="primary" data-lv="track"'+(lbusy||tw>0||!rmcp?' disabled':'')+'>Keep scores live (90 min)</button><button type="button" data-lv="update"'+(lbusy||wait>0||!rmcp?' disabled':'')+'>Update once</button></div>')+'</div>';
     if(!LV)return top+'<div class="empty"><strong>No scores yet</strong>Tap Update scores, or wait for the next refresh.</div>';
     var G=LV.games, groups=[['In play now','in'],['Finished','post'],['Coming up','pre']], any=false;
     groups.forEach(function(gr){
@@ -1110,7 +1176,15 @@ h3{margin:14px 0 0}
       lbusy=false; lmsg=null; render(); setTimeout(function(){if(S.view==='live')render()},LF.cooldown+500);
     },function(e){lbusy=false; lmsg=rError(e&&e.code); lmsg.text=lmsg.text.replace(/refresh/g,'score update'); render();});
   }
-  setInterval(function(){if(S.view==='live'&&!document.hidden)loadLive();},45000);
+  function trackStart(){
+    if(lbusy||trackWait()>0||!rmcp||trackingOn())return;
+    lbusy=true; lmsg=null; render();
+    rmcp.callTool(RF.server,RF.tool,{trigger_id:LF.track,text:'Run started from the Keep scores live button on the page.'}).then(function(){
+      try{localStorage.setItem('propfinder-track',String(Date.now()))}catch(e){}
+      lbusy=false; lmsg={kind:'good',text:'Live tracking is starting. Scores should begin updating within 1 to 2 minutes and then refresh about every 2 minutes for 90 minutes.'}; render();
+    },function(e){lbusy=false; lmsg=rError(e&&e.code); lmsg.text=lmsg.text.replace(/refresh/g,'live tracking'); render();});
+  }
+  setInterval(function(){if(!document.hidden&&(S.view==='live'||(S.tab==='matches'&&!S.view)))loadLive();},45000);
   document.addEventListener('visibilitychange',function(){if(!document.hidden&&S.view==='live')loadLive();});
 
   /* ---------- Refresh now: starts the same refresh as the daily schedule ---------- */
@@ -1172,7 +1246,7 @@ h3{margin:14px 0 0}
     if(window.claude&&window.claude.use){window.claude.use('mcp').then(function(m){rmcp=m||null;rRender();if(S.view==='live')render();},function(){});}
   }catch(e){}
 
-  S.intro=(lget(IKEY)!=='1'); loadResults(); loadLive();
+  S.intro=(lget(IKEY)!=='1'); loadResults(); loadLive(); liveDb();
   loadSport(S.sport,function(){show(false);ledgerLoad();});
 })();
 </script>

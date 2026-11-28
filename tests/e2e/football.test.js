@@ -20,11 +20,11 @@ const pc = t => t.includes('90%+') ? 90 : (t.includes('<1%') ? 0 : parseInt(t.ma
   ok('no errors after switching sport', errs.length===0, JSON.stringify(errs));
 
   // ---------- matches list ----------
-  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow');
-  const nRows = await p.locator('.mrow').count();
+  await p.click('button[data-tab=matches]'); await p.waitForSelector('.mrow[data-open]');
+  const nRows = await p.locator('.mrow[data-open]').count();
   ok(`${upcoming.length} upcoming matches listed`, nRows===upcoming.length, String(nRows));
   ok('list: stat/odds filters hidden, league chips + team search shown, game dropdown hidden', !(await p.locator('#stat-chips').isVisible()) && !(await p.locator('#g-min').isVisible()) && await p.locator('#lg-chips').isVisible() && await p.locator('#q').isVisible() && !(await p.locator('#game').isVisible()));
-  const rows = await p.locator('.mrow').evaluateAll(rs => rs.map(r => ({ t: r.innerText, id: r.dataset.open, lg: r.querySelector('.mmeta').innerText })));
+  const rows = await p.locator('.mrow[data-open]').evaluateAll(rs => rs.map(r => ({ t: r.innerText, id: r.dataset.open, lg: r.querySelector('.mmeta').innerText })));
   const sums = rows.map(r => { const l=r.t.split('\n'); const pcts=[...r.t.matchAll(/(90%\+|<1%|\d+%)/g)].map(m=>m[1]); return pcts; });
   const ok1 = rows.every((r,i) => { const [h,a,d] = [pc(r.t.split('\n').filter(x=>/%/.test(x))[0]), 0,0]; return true; });
   const tot = rows.map(r => { const m=[...r.t.matchAll(/(90%\+|<1%|\d+%)/g)].map(x=>pc(x[1])); return m[0]+m[1]+m[2]; });
@@ -36,22 +36,22 @@ const pc = t => t.includes('90%+') ? 90 : (t.includes('<1%') ? 0 : parseInt(t.ma
   for (const g of upcoming) { for (const id of [g.home_id,g.away_id]) if (!fs.existsSync(`/home/user/aaryan/site/crests/${id}.png`)) ok(`crest file exists for team ${id}`, false); }
   ok('every club on the list has a crest file', !R.some(r=>r[0]==='FAIL' && /crest file/.test(r[1])));
   await p.evaluate(()=>document.querySelectorAll('img.crest').forEach(i=>{i.loading='eager'})); await p.waitForTimeout(1200);
-  const loaded = await p.evaluate(()=>[...document.querySelectorAll('.mrow img.crest')].map(i=>i.complete&&i.naturalWidth>0));
+  const loaded = await p.evaluate(()=>[...document.querySelectorAll('.mrow[data-open] img.crest')].map(i=>i.complete&&i.naturalWidth>0));
   ok('crest images actually load on the list', loaded.length===2*upcoming.length && loaded.every(Boolean), `${loaded.filter(Boolean).length}/${loaded.length}`);
   // league filter
   const lgs = [...new Set(upcoming.map(g=>g.league))];
   ok('league chips: All + one per competition', (await p.locator('#lg-chips .chip').count())===lgs.length+1, String(await p.locator('#lg-chips .chip').count()));
-  for (const lg of lgs) { await p.click(`#lg-chips [data-lg="${lg}"]`); const n = await p.locator('.mrow').count(); const names=new Set(await p.locator('.mrow .mmeta').evaluateAll(e=>e.map(x=>x.lastElementChild.innerText))); ok(`league filter ${lg}`, n===upcoming.filter(g=>g.league===lg).length && names.size===1, `${n} rows, ${[...names].join()}`); }
+  for (const lg of lgs) { await p.click(`#lg-chips [data-lg="${lg}"]`); const n = await p.locator('.mrow[data-open]').count(); const names=new Set(await p.locator('.mrow .mmeta').evaluateAll(e=>e.map(x=>x.lastElementChild.innerText))); ok(`league filter ${lg}`, n===upcoming.filter(g=>g.league===lg).length && names.size===1, `${n} rows, ${[...names].join()}`); }
   await p.click('#lg-chips [data-lg="all"]');
   await p.fill('#q','arsenal'); await p.waitForTimeout(900);
-  const ars = await p.locator('.mrow .mname').allInnerTexts(); ok('team search finds Arsenal', ars.length>=1 && ars.some(n=>/Arsenal/.test(n)), ars.join(','));
+  const ars = await p.locator('.mrow[data-open] .mname').allInnerTexts(); ok('team search finds Arsenal', ars.length>=1 && ars.some(n=>/Arsenal/.test(n)), ars.join(','));
   await p.fill('#q','zzzz'); await p.waitForTimeout(900); ok('team search with no match says so', /No matches found/.test(await p.locator('#list').innerText()));
   await p.fill('#q',''); await p.waitForTimeout(900);
 
   // ---------- open a match -> player props ----------
   const withPlayers = upcoming.find(g => DATA.players.filter(x=>x.game===g.id).length>10);
   const idx = upcoming.indexOf(withPlayers);
-  await p.locator('.mrow').nth(idx).click(); await p.waitForSelector('.srow');
+  await p.locator('.mrow[data-open]').nth(idx).click(); await p.waitForSelector('.srow');
   ok('tapping a match opens its page (back button, crests, two views)', await p.locator('[data-back]').isVisible() && (await p.locator('.dhead img.crest, .dhead .crest').count())===2 && (await p.locator('button[data-mv]').count())===2);
   ok('match page: list filters are gone, stat chips are inside the page', !(await p.locator('.controls').isVisible()) && (await p.locator('#list [data-stat]').count())===5);
   const plist = DATA.players.filter(x=>x.game===withPlayers.id);
@@ -76,15 +76,15 @@ const pc = t => t.includes('90%+') ? 90 : (t.includes('<1%') ? 0 : parseInt(t.ma
   await p.waitForTimeout(900);
   await p.click('button[data-mv=bets]'); await p.waitForSelector('.mk');
   ok('Match bets view shows 4 markets', (await p.locator('.mk').count())===4);
-  await p.click('[data-back]'); await p.waitForSelector('.mrow');
-  ok('Back returns to the full list', (await p.locator('.mrow').count())===upcoming.length);
+  await p.click('[data-back]'); await p.waitForSelector('.mrow[data-open]');
+  ok('Back returns to the full list', (await p.locator('.mrow[data-open]').count())===upcoming.length);
   // a match with no player data
   const noP = upcoming.find(g => DATA.players.filter(x=>x.game===g.id).length===0);
-  if (noP) { await p.locator('.mrow').nth(upcoming.indexOf(noP)).click(); await p.waitForTimeout(300); ok('match with no player data explains why, bets still there', /No player data/.test(await p.locator('#list').innerText())); await p.click('button[data-mv=bets]'); ok('...and match bets still work', (await p.locator('.mk').count())===4); await p.click('[data-back]'); await p.waitForSelector('.mrow'); }
+  if (noP) { await p.locator('.mrow[data-open]').nth(upcoming.indexOf(noP)).click(); await p.waitForTimeout(300); ok('match with no player data explains why, bets still there', /No player data/.test(await p.locator('#list').innerText())); await p.click('button[data-mv=bets]'); ok('...and match bets still work', (await p.locator('.mk').count())===4); await p.click('[data-back]'); await p.waitForSelector('.mrow[data-open]'); }
   ok('list page: "N players" count matches the data', await p.evaluate(([id,n])=>{const r=document.querySelector(`.mrow[data-open="${id}"]`);return r.innerText.includes(n+' players')},[withPlayers.id,plist.length]));
 
   // ---------- match bets (typed lines + odds), checked against Python afterwards ----------
-  async function openBets(i){ if (await p.locator('[data-back]').count()) await p.click('[data-back]'); await p.waitForSelector('.mrow'); await p.locator('.mrow').nth(i).click(); await p.waitForSelector('button[data-mv=bets]'); await p.click('button[data-mv=bets]'); await p.waitForSelector('.mk'); return p.locator('article[data-mcard]'); }
+  async function openBets(i){ if (await p.locator('[data-back]').count()) await p.click('[data-back]'); await p.waitForSelector('.mrow[data-open]'); await p.locator('.mrow[data-open]').nth(i).click(); await p.waitForSelector('button[data-mv=bets]'); await p.click('button[data-mv=bets]'); await p.waitForSelector('.mk'); return p.locator('article[data-mcard]'); }
   const combos = [['hcp',-1.5,'home','2.10'],['hcp',0.5,'away','1.40'],['hcp',1,'home','3.0'],['tot',2.5,'over','1.90'],['tot',3,'under','2.2'],['tot',1.5,'over','1.30'],['1x2',null,'home','2.0'],['1x2',null,'away','2.0'],['btts',null,'yes','2.0']];
   for (let i=0;i<combos.length;i++) {
     const c = await openBets(i); const mid = await c.getAttribute('data-mcard'); const [kind,line,sel,odds] = combos[i];
@@ -158,16 +158,16 @@ const pc = t => t.includes('90%+') ? 90 : (t.includes('<1%') ? 0 : parseInt(t.ma
   await p.waitForTimeout(900); await p.reload(); await p.waitForTimeout(1200);
   ok('football selection survives reload', (await p.getAttribute('button[data-sport=football]','aria-pressed'))==='true');
   await p.click('button[data-sport=nba]'); await p.waitForTimeout(900);
-  ok('switching back to NBA works (3 tabs, lands on Games)', (await p.locator('#tabs .tab').count())===3 && (await p.locator('.mrow').count())>0);
+  ok('switching back to NBA works (3 tabs, lands on Games)', (await p.locator('#tabs .tab').count())===3 && (await p.locator('.mrow[data-open]').count())>0);
   ok('about section changes with the sport', !/Matches:/.test(await p.evaluate(()=>document.querySelector('#about-list').textContent)));
 
   // ---------- widths, failure of crests / data ----------
   for (const w of [360,390,768,1280]) { const q=await (await b.newContext({viewport:{width:w,height:844}})).newPage(); await q.goto(URL); await q.waitForSelector('.card'); await q.click('button[data-sport=football]'); await q.waitForTimeout(700);
-    let overflow=false; for (const t of ['matches','outrights','best','probable']) { await q.click(`button[data-tab=${t}]`); await q.waitForTimeout(250); if (await q.evaluate(()=>document.documentElement.scrollWidth>innerWidth)) overflow=t; if (t==='matches') { await q.locator('.mrow').first().click(); await q.waitForSelector('.dhead'); if (await q.evaluate(()=>document.documentElement.scrollWidth>innerWidth)) overflow='match page'; await q.click('[data-back]'); } }
+    let overflow=false; for (const t of ['matches','outrights','best','probable']) { await q.click(`button[data-tab=${t}]`); await q.waitForTimeout(250); if (await q.evaluate(()=>document.documentElement.scrollWidth>innerWidth)) overflow=t; if (t==='matches') { await q.locator('.mrow[data-open]').first().click(); await q.waitForSelector('.dhead'); if (await q.evaluate(()=>document.documentElement.scrollWidth>innerWidth)) overflow='match page'; await q.click('[data-back]'); } }
     ok(`no sideways scroll at ${w}px (football: list, match page, all tabs)`, !overflow, String(overflow)); await q.context().close(); }
-  const noCrest = await (await b.newContext({viewport:{width:390,height:844}})).newPage(); await noCrest.route('**/crests/*.png', r=>r.abort()); await noCrest.goto(URL); await noCrest.waitForSelector('.card'); await noCrest.click('button[data-sport=football]'); await noCrest.waitForTimeout(700); await noCrest.click('button[data-tab=matches]'); await noCrest.waitForSelector('.mrow');
+  const noCrest = await (await b.newContext({viewport:{width:390,height:844}})).newPage(); await noCrest.route('**/crests/*.png', r=>r.abort()); await noCrest.goto(URL); await noCrest.waitForSelector('.card'); await noCrest.click('button[data-sport=football]'); await noCrest.waitForTimeout(700); await noCrest.click('button[data-tab=matches]'); await noCrest.waitForSelector('.mrow[data-open]');
   await noCrest.evaluate(()=>document.querySelectorAll('img.crest').forEach(i=>{i.loading='eager'})); await noCrest.waitForTimeout(1200);
-  const ph = await noCrest.locator('.mrow .crest.ph').allInnerTexts();
+  const ph = await noCrest.locator('.mrow[data-open] .crest.ph').allInnerTexts();
   ok('missing crests fall back to an initials badge (page still fine)', ph.length===2*upcoming.length && ph.every(t=>/^[A-Z0-9]{1,2}$/.test(t)), `${ph.length} badges, e.g. ${ph.slice(0,3).join(',')}`);
   const fail = await (await b.newContext({viewport:{width:390,height:844}})).newPage(); await fail.route('**/predictions_soccer.json', r=>r.abort()); await fail.goto(URL); await fail.waitForSelector('.card'); await fail.click('button[data-sport=football]'); await fail.waitForTimeout(800);
   ok('football load failure shows a clear message', /Could not load the Football predictions/.test(await fail.locator('#list').innerText()));
