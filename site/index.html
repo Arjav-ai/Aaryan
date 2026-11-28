@@ -275,6 +275,13 @@ body.hasslip{padding-bottom:calc(var(--dockh) + env(safe-area-inset-bottom,0px) 
 .pin-r{display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:14.5px}
 .pin-l{display:grid;min-width:0}
 .pin-l small{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lprow{display:grid;grid-template-columns:minmax(0,1fr) 62px 62px 62px;gap:6px 8px;align-items:end;padding-top:12px;border-top:1px solid var(--line)}
+.lprow:first-of-type{border-top:0}
+.lpl{min-width:0}
+.lpres{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;font-size:13px}
+.lpres .verdict{flex-basis:100%}
+.lprow .field input{min-height:44px;padding:0 4px;text-align:center}
+.lprow .field>span{font-size:11.5px}
 .tested{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;display:grid;gap:4px}
 #list .seg{margin-bottom:2px}
 @media (max-width:370px){.srow{grid-template-columns:minmax(0,1fr) 58px 58px 58px}.tab,.dockbtn{font-size:10.5px}}
@@ -377,7 +384,7 @@ body.hasslip{padding-bottom:calc(var(--dockh) + env(safe-area-inset-bottom,0px) 
   var FKEY='propfinder-filters-open', IKEY='propfinder-intro-seen';
   function lget(k){try{return localStorage.getItem(k)}catch(e){return null}}
   function lset(k,v){try{localStorage.setItem(k,v)}catch(e){}}
-  var S={rtab:'mine',slipBook:'',lm:null,intro:false,view:null,sport:'nba',tab:'matches',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{},ol:null,om:'title',match:null,mview:'props',mteam:'all',lg:'all'};
+  var S={lpstat:'all',lpall:false,rtab:'mine',slipBook:'',lm:null,intro:false,view:null,sport:'nba',tab:'matches',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{},ol:null,om:'title',match:null,mview:'props',mteam:'all',lg:'all'};
   try{var saved=JSON.parse(localStorage.getItem(LS)||'{}');for(var k in saved)S[k]=saved[k];}catch(e){}
   if(!SPORTS[S.sport])S.sport='nba';
   S.shown=PAGE;
@@ -692,6 +699,59 @@ body.hasslip{padding-bottom:calc(var(--dockh) + env(safe-area-inset-bottom,0px) 
     });
     return h;
   }
+  /* ---------- in-game (live) props ----------
+     Pre-game expectation mu and spread alpha (negative binomial = a Poisson count whose rate is Gamma-distributed with shape r=1/alpha).
+     After a share f of the game, with `cur` counted so far, the rest of the game is again negative binomial with
+     size r+cur and mean mu(1-f)(r+cur)/(r+mu f)  (the Gamma-Poisson update). Not tested on past games: no in-play history is stored. */
+  function normName(s){s=String(s||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,'');return s.trim().replace(/\s+(jr|sr|ii|iii|iv)$/,'')}
+  /* How much a count so far tells us about the rest of the game. 1 = every event is independent (shots, rebounds, assists, threes, goals, TDs, catches).
+     Points and yards come in lumps (a basket is 2-3 points, a pass 12 yards), so the same total is weaker evidence: weights are judgement, not tested. */
+  var LPW={pts:0.25,reb:0.9,ast:0.9,fg3:1,shots:1,sot:1,goals:1,assists:1,pass_yds:0.07,rush_yds:0.08,rec_yds:0.07,pass_td:1,rec:1};
+  function lpRest(mu,alpha,f,cur,stat){var r=1/alpha,w=LPW[stat]==null?0.5:LPW[stat],size=r+w*cur,mean=mu*(1-f)*size/(r+w*mu*f);return{mean:mean,d:dist(mean,1/size)}}
+  function lpEval(r,side){
+    var st=S.rows[r.key]||{}, line=st.line!=null?st.line:Math.floor(r.cur+r.rest.mean)+0.5, need=line-r.cur, win,push;
+    if(need<0){win=side==='over'?1:0;push=0;}
+    else{var pr=probs(r.rest.d,need,side);win=pr.win;push=pr.push;}
+    var odds=side==='over'?st.o:st.u, m=money(win,push,odds>1?odds:null);
+    return{line:line,win:m.win,capped:m.capped,ev:m.ev,be:m.be,odds:odds>1?odds:null,final:r.cur+r.rest.mean};
+  }
+  function lpResHTML(r){
+    var o=lpEval(r,'over'), u=lpEval(r,'under');
+    var h='<span class="pill">Over '+fmtLine(o.line)+': '+fmtPct(o)+'</span><span class="pill">Under: '+fmtPct(u)+'</span>';
+    var best=null;[o,u].forEach(function(x,i){if(x.ev!=null&&(!best||x.ev>best.x.ev))best={x:x,side:i?'Under':'Over'}});
+    if(best){var v=verdict(best.x.ev);h+='<div class="verdict '+v.c+'"><strong>'+v.w+' on '+best.side+' '+fmtLine(best.x.line)+'</strong> at '+fmtOdds(best.x.odds)+' ('+(best.x.ev>=0?'+':'\u2212')+Math.abs(Math.round(best.x.ev*100))+'% edge). Live chances are untested: check the numbers yourself.</div>';}
+    return h;
+  }
+  function lpRows(g){
+    var rows=[]; if(!g.players||g.f==null||!cur.d.startedPlayers)return rows;
+    cur.d.startedPlayers.forEach(function(p){
+      if(String(p.game)!==String(g.id))return;
+      var box=g.players[normName(p.name)]; if(!box)return;
+      cur.STATS.forEach(function(s){
+        var x=p.stats[s]; if(!x||box[s]==null)return;
+        var rest=lpRest(x.mu,x.alpha,g.f,box[s],s);
+        rows.push({key:'LP|'+g.id+'|'+p.name+'|'+s,p:p,stat:s,unit:cur.d.labels[s],mu:x.mu,cur:box[s],rest:rest,minutes:box.min});
+      });
+    });
+    return rows;
+  }
+  function lpHTML(g){
+    var rows=lpRows(g); if(!rows.length)return '<p class="hint">Live props need a box score, which is not available for this game yet. Tap Update once or wait for the next live update.</p>';
+    var stat=S.lpstat||'all', pool=rows.filter(function(r){return stat==='all'||r.stat===stat});
+    var tot={},cnt={};rows.forEach(function(r){tot[r.stat]=(tot[r.stat]||0)+r.mu;cnt[r.stat]=(cnt[r.stat]||0)+1});
+    pool.sort(function(a,b){return b.mu/(tot[b.stat]/cnt[b.stat])-a.mu/(tot[a.stat]/cnt[a.stat])});   // biggest roles first, compared within each stat
+    var limit=S.lpall?pool.length:12, shown=pool.slice(0,limit);
+    var chips='<div class="chips"><button class="chip" data-lpstat="all" aria-pressed="'+(stat==='all')+'">All</button>'+cur.STATS.map(function(s){return '<button class="chip" data-lpstat="'+s+'" aria-pressed="'+(stat===s)+'">'+esc(cur.d.labels[s])+'</button>'}).join('')+'</div>';
+    var h='<article class="card"><div class="name">Live props</div><p class="hint" style="margin:0">Pre-game expectation updated for how much of the game is gone and what each player has done so far. This has not been tested on past games, and it cannot see foul trouble, injuries or a blowout. Type the live line and odds your bookmaker shows.</p>'+chips+
+      shown.map(function(r){var o=lpEval(r,'over');
+        return '<div class="lprow" data-lp="'+esc(r.key)+'"><div class="lpl"><div class="name" style="font-size:15px">'+esc(r.p.name)+'</div><div class="meta">'+esc(r.unit)+' \u00b7 so far <b>'+r.cur+'</b> \u00b7 on pace for '+o.final.toFixed(1)+'</div></div>'+
+          '<label class="field"><span>Line</span><input data-field="lpline" type="number" inputmode="decimal" step="0.5" min="0" value="'+o.line+'"></label>'+
+          '<label class="field"><span>Over</span><input data-field="lpo" type="number" inputmode="decimal" step="0.01" min="1" placeholder="1.85" value="'+(o.odds||'')+'"></label>'+
+          '<label class="field"><span>Under</span><input data-field="lpu" type="number" inputmode="decimal" step="0.01" min="1" placeholder="1.85" value="'+(lpEval(r,'under').odds||'')+'"></label>'+
+          '<div class="lpres">'+lpResHTML(r)+'</div></div>'}).join('')+
+      (pool.length>limit?'<button class="more" data-lpall="1">Show all '+pool.length+' rows</button>':'')+'</article>';
+    return h;
+  }
   function liveDetailHTML(id){
     var g=null; if(LV)LV.games.forEach(function(x){if(x.id===id)g=x}); 
     var m=null; cur.d.started.forEach(function(x){if(String(x.id)===id)m=x});
@@ -707,6 +767,7 @@ body.hasslip{padding-bottom:calc(var(--dockh) + env(safe-area-inset-bottom,0px) 
       (has?'<div class="bigscore">'+g.away_score+' \u2013 '+g.home_score+'</div>':'<div class="bigscore">\u2013</div>')+
       '<div class="meta dmeta">'+stat+' \u00b7 '+esc(g.league_name||'')+(LV?' \u00b7 scores '+lvAgoText():'')+'</div>'+pre+'</article>'+
       '<div class="notice">Bets and props close when a game starts, so this page does not list them for a game in play. The chances above were made before the start.</div>'+
+      (on&&g.players?lpHTML(g):'')+
       (on&&!trackingOn()?'<div class="rrow lvact"><button type="button" class="primary" data-lv="track"'+(rmcp&&!lbusy&&trackWait()<=0?'':' disabled')+'>Keep scores live (90 min)</button><button type="button" data-lv="update"'+(rmcp&&!lbusy&&lvWait()<=0?'':' disabled')+'>Update once</button></div>':'');
   }
   function openBetsHTML(){
@@ -1139,6 +1200,8 @@ body.hasslip{padding-bottom:calc(var(--dockh) + env(safe-area-inset-bottom,0px) 
     else if(t.dataset.slip){slipToggle(t.dataset.slip);}
     else if(t.dataset.rtab){S.rtab=t.dataset.rtab;render();window.scrollTo(0,0);}
     else if(t.id==='slipopen'){S.view='slip';S.intro=false;render();window.scrollTo(0,0);}
+    else if(t.dataset.lpstat){S.lpstat=t.dataset.lpstat;S.lpall=false;render();}
+    else if(t.dataset.lpall){S.lpall=true;render();}
     else if(t.dataset.back2){S.view=null;render();window.scrollTo(0,0);}
     else if(t.dataset.slipdel){SLIP.splice(parseInt(t.dataset.slipdel,10),1);slipSave();render();}
     else if(t.dataset.slipclear){SLIP=[];slipSave();S.slipBook='';S.view=null;render();}
@@ -1167,6 +1230,13 @@ body.hasslip{padding-bottom:calc(var(--dockh) + env(safe-area-inset-bottom,0px) 
   $('#list').addEventListener('input',function(ev){
     var inp=ev.target; if(!inp.dataset||!inp.dataset.field)return;
     var f=inp.dataset.field, v=num(inp.value);
+    if(f==='lpline'||f==='lpo'||f==='lpu'){
+      var host2=inp.closest('[data-lp]'), key2=host2.dataset.lp, gid=key2.split('|')[1], g2=null; if(LV)LV.games.forEach(function(x){if(String(x.id)===gid)g2=x});
+      var row2=g2&&lpRows(g2).filter(function(r){return r.key===key2})[0]; if(!row2)return;
+      var st2=S.rows[key2]||(S.rows[key2]={}), fld={lpline:'line',lpo:'o',lpu:'u'}[f];
+      if(v==null)delete st2[fld]; else st2[fld]=v;
+      host2.querySelector('.lpres').innerHTML=lpResHTML(row2); save(); return;
+    }
     if(f==='slipbook'){S.slipBook=inp.value;var sc=$('#slipcalc');if(sc)sc.innerHTML=slipSumHTML();return;}
     if(f==='line'||f==='odds'||f==='odds2'){            // player props
       var host=inp.closest('[data-key]'), sk=host.dataset.key, r=cur.ROWMAP[host.dataset.base];
@@ -1214,6 +1284,8 @@ body.hasslip{padding-bottom:calc(var(--dockh) + env(safe-area-inset-bottom,0px) 
     var now=Date.now(), live={};
     d.started=d.games.filter(function(g){return g.start&&Date.parse(g.start)<=now&&now-Date.parse(g.start)<6*36e5});
     d.games=d.games.filter(function(g){var ok=!g.start||Date.parse(g.start)>now;if(ok)live[g.id]=1;return ok});
+    var sid={}; d.started.forEach(function(g){sid[g.id]=1});
+    d.startedPlayers=d.players.filter(function(p){return sid[p.game]});          // kept for in-game props
     d.players=d.players.filter(function(p){return live[p.game]});
     var c={d:d,ROWS:[],ROWMAP:{},GAMES:{},STATS:d.stats||STATS_NBA};
     d.games.forEach(function(g){c.GAMES[g.id]=g});

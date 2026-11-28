@@ -6,6 +6,8 @@ Only today's scoreboards (UTC today and yesterday, so late games are not lost). 
 import datetime as dt
 import argparse
 import json
+import re
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -51,6 +53,26 @@ def fetch_one(args):
     return out
 
 
+def add_box_scores(games):
+    """For games in play: how much of the game is gone and every player's numbers so far (for in-game props)."""
+    live = [g for g in games if g["state"] == "in" and g["sport"] in PATH]
+    def one(g):
+        try:
+            path = PATH[g["sport"]] or f"soccer/{g['league']}"
+            s = espn.get(path + "/summary", ttl=0, pace=False, event=g["id"])
+            g["players"] = box_stats(g["sport"], s, g)
+        except Exception as e:                           # one game failing must not hide the others
+            print(f"  box score {g['home']} v {g['away']}: skipped ({e})")
+            g["players"] = {}
+    with ThreadPoolExecutor(8) as pool:
+        list(pool.map(one, live))
+    for g in live:
+        g["f"] = round(elapsed_fraction(g["sport"], g.get("period", 0), g.get("clock", ""), g.get("clock", "")), 3)
+    for g in games:
+        if g["state"] == "post" and "players" not in g:
+            pass
+
+
 def main(until: str | None = None):
     jobs = [("nba", "nba", "NBA", "basketball/nba"), ("nfl", "nfl", "NFL", "football/nfl"), ("cfb", "cfb", "College football", "football/college-football", {"groups": 80})] + [("football", k, v, f"soccer/{k}") for k, v in LEAGUES.items()]
     with ThreadPoolExecutor(11) as pool:
@@ -67,6 +89,7 @@ def main(until: str | None = None):
         if r["state"] == "in" or (r["state"] == "post" and now - start < dt.timedelta(hours=30)) or (r["state"] == "pre" and start - now < dt.timedelta(hours=30)):
             keep.append(r)
     keep.sort(key=lambda r: (r["state"] != "in", r["start"]))
+    add_box_scores(keep)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     doc = {"generated_at": now.isoformat(timespec="seconds"), "games": keep}
     if until:   # live tracking: the page shows "tracking on" until this time
@@ -81,3 +104,62 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--until", help="ISO time live tracking runs until, or 'now' to switch it off")
     main(ap.parse_args().until)
+
+
+# ---------- live box scores (for in-game props) ----------
+PATH = {"nba": "basketball/nba", "nfl": "football/nfl", "cfb": "football/college-football", "football": None}
+
+
+def norm(s: str) -> str:
+    """Same name clean-up the page uses to match ESPN names to the prediction files."""
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
+    s = "".join(c for c in s if c.isalnum() or c == " ")
+    return re.sub(r"\s+(jr|sr|ii|iii|iv)$", "", s.strip())
+
+
+def elapsed_fraction(sport: str, period: int, clock: str, display: str = "") -> float:
+    """Share of the game already played, 0..1. Basketball 4 x 12 min, American football 4 x 15 min, football 90 min."""
+    def mmss(c):
+        m = re.match(r"^(\d+):(\d+)", c or "")
+        return int(m.group(1)) + int(m.group(2)) / 60 if m else None
+    if sport in ("nba", "nfl", "cfb"):
+        q, n = (12, 4) if sport == "nba" else (15, 4)
+        left = mmss(clock)
+        if left is None:
+            return min(period, n) / n
+        if period > n:
+            return 1.0 - 0.01                          # overtime: nearly over by the regular clock
+        return min(0.995, ((period - 1) * q + (q - left)) / (q * n))
+    m = re.match(r"^(\d+)", display or "")
+    return min(0.995, int(m.group(1)) / 90) if m else 0.0
+
+
+def box_stats(sport: str, summary: dict, game: dict) -> dict:
+    """name -> {stat: value so far} using the stat keys the prediction files use."""
+    out = {}
+    if sport == "nba":
+        for tm in summary.get("boxscore", {}).get("players", []):
+            for cat in tm.get("statistics", []):
+                keys = cat.get("keys", [])
+                for a in cat.get("athletes", []):
+                    st = dict(zip(keys, a.get("stats", [])))
+                    if not st:
+                        continue
+                    def num(k):
+                        try:
+                            return int(float(str(st.get(k, 0)).split("-")[0]))
+                        except ValueError:
+                            return 0
+                    out[norm(a["athlete"]["displayName"])] = {"pts": num("points"), "reb": num("rebounds"), "ast": num("assists"),
+                                                              "fg3": num("threePointFieldGoalsMade-threePointFieldGoalsAttempted"), "min": num("minutes")}
+    elif sport in ("nfl", "cfb"):
+        from .us_ingest import parse_players
+        g = {"game_id": game["id"], "league": sport, "date": "", "home_id": game["home_id"]}
+        for r in parse_players(summary, g):
+            out[norm(r["player"])] = {s: r[s] for s in ("pass_yds", "pass_td", "rush_yds", "rec_yds", "rec")}
+    else:
+        from .soccer_ingest import parse_players
+        m = {"match_id": game["id"], "league": "", "date": "", "home_id": game["home_id"], "away_id": game["away_id"], "home": game["home"], "away": game["away"]}
+        for r in parse_players(summary, m):
+            out[norm(r["player"])] = {s: r[s] for s in ("shots", "sot", "goals", "assists")}
+    return out
