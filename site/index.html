@@ -742,7 +742,7 @@ body.hasslip{padding-bottom:calc(var(--dockh) + env(safe-area-inset-bottom,0px) 
     pool.sort(function(a,b){return b.mu/(tot[b.stat]/cnt[b.stat])-a.mu/(tot[a.stat]/cnt[a.stat])});   // biggest roles first, compared within each stat
     var limit=S.lpall?pool.length:12, shown=pool.slice(0,limit);
     var chips='<div class="chips"><button class="chip" data-lpstat="all" aria-pressed="'+(stat==='all')+'">All</button>'+cur.STATS.map(function(s){return '<button class="chip" data-lpstat="'+s+'" aria-pressed="'+(stat===s)+'">'+esc(cur.d.labels[s])+'</button>'}).join('')+'</div>';
-    var h='<article class="card"><div class="name">Live props</div><p class="hint" style="margin:0">Pre-game expectation updated for how much of the game is gone and what each player has done so far. This has not been tested on past games, and it cannot see foul trouble, injuries or a blowout. Type the live line and odds your bookmaker shows.</p>'+chips+
+    var h='<article class="card"><div class="name">Live props</div><p class="hint" style="margin:0">Pre-game expectation updated for how much of the game is gone and what each player has done so far. This has not been tested on past games, and it cannot see substitutions, injuries, foul trouble or how one-sided the game is. Type the live line and odds your bookmaker shows.</p>'+chips+
       shown.map(function(r){var o=lpEval(r,'over');
         return '<div class="lprow" data-lp="'+esc(r.key)+'"><div class="lpl"><div class="name" style="font-size:15px">'+esc(r.p.name)+'</div><div class="meta">'+esc(r.unit)+' \u00b7 so far <b>'+r.cur+'</b> \u00b7 on pace for '+o.final.toFixed(1)+'</div></div>'+
           '<label class="field"><span>Line</span><input data-field="lpline" type="number" inputmode="decimal" step="0.5" min="0" value="'+o.line+'"></label>'+
@@ -766,7 +766,7 @@ body.hasslip{padding-bottom:calc(var(--dockh) + env(safe-area-inset-bottom,0px) 
       '<article class="card"><div class="dhead">'+['away','home'].map(function(sd,i){return (i?'<div class="dvs">'+(g.sport==='football'?'v':'at')+'</div>':'')+'<div class="dteam">'+crest(lcid(g,sd),g[sd],56)+'<span>'+esc(g[sd])+'</span></div>'}).join('')+'</div>'+
       (has?'<div class="bigscore">'+g.away_score+' \u2013 '+g.home_score+'</div>':'<div class="bigscore">\u2013</div>')+
       '<div class="meta dmeta">'+stat+' \u00b7 '+esc(g.league_name||'')+(LV?' \u00b7 scores '+lvAgoText():'')+'</div>'+pre+'</article>'+
-      '<div class="notice">Bets and props close when a game starts, so this page does not list them for a game in play. The chances above were made before the start.</div>'+
+      '<div class="notice">'+(on&&g.players?'The chances above were made before the start. The live props below are updated from the box score.':'Bets and props close when a game starts, so this page does not list them for a game in play. The chances above were made before the start.')+'</div>'+
       (on&&g.players?lpHTML(g):'')+
       (on&&!trackingOn()?'<div class="rrow lvact"><button type="button" class="primary" data-lv="track"'+(rmcp&&!lbusy&&trackWait()<=0?'':' disabled')+'>Keep scores live (90 min)</button><button type="button" data-lv="update"'+(rmcp&&!lbusy&&lvWait()<=0?'':' disabled')+'>Update once</button></div>':'');
   }
