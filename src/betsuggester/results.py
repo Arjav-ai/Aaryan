@@ -36,15 +36,29 @@ def build(days: int = DAYS) -> dict:
         p = fby.get(r.match_id)
         fb.append({"key": str(r.match_id), "home": r.home, "away": r.away, "home_goals": int(r.home_goals), "away_goals": int(r.away_goals),
                    "players": {x.player: [int(x.shots), int(x.sot), int(x.goals), int(x.assists)] for x in p.itertuples()} if p is not None else {}})
-    return {"generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"), "days": days,
-            "nba_stats": ["pts", "reb", "ast", "fg3"], "football_stats": ["shots", "sot", "goals", "assists"], "nba": nba, "football": fb}
+    out = {"generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"), "days": days,
+           "nba_stats": ["pts", "reb", "ast", "fg3"], "football_stats": ["shots", "sot", "goals", "assists"], "nba": nba, "football": fb}
+    from .us_model import STAT_ORDER
+    out["nfl_stats"] = out["cfb_stats"] = STAT_ORDER
+    for lg, d in (("nfl", days), ("cfb", 12)):        # college has many more games, so fewer days keep the file small
+        since_lg = (pd.Timestamp.today().normalize() - pd.Timedelta(days=d)).date().isoformat()
+        gs = pd.read_sql_query("SELECT game_id, date, home_abbr, away_abbr, home_pts, away_pts FROM us_games WHERE league=? AND date >= ?", conn, params=(lg, since_lg))
+        ps = pd.read_sql_query("SELECT game_id, player, " + ", ".join(STAT_ORDER) + " FROM us_player_games WHERE league=? AND date >= ?", conn, params=(lg, since_lg))
+        pby = {k: g for k, g in ps.groupby("game_id")}
+        rows = []
+        for r in gs.itertuples(index=False):
+            p = pby.get(r.game_id)
+            rows.append({"key": f"{r.date}|{r.home_abbr}", "home": r.home_abbr, "away": r.away_abbr, "home_pts": int(r.home_pts), "away_pts": int(r.away_pts),
+                         "players": {x.player: [int(getattr(x, s)) for s in STAT_ORDER] for x in p.itertuples()} if p is not None else {}})
+        out[lg] = rows
+    return out
 
 
 def main():
     d = build()
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(d, separators=(",", ":")))
-    print(f"wrote {OUT}: {len(d['nba'])} NBA games, {len(d['football'])} football matches, {OUT.stat().st_size // 1024} KB")
+    print(f"wrote {OUT}: {len(d['nba'])} NBA games, {len(d['football'])} football matches, {len(d['nfl'])} NFL, {len(d['cfb'])} college, {OUT.stat().st_size // 1024} KB")
 
 
 if __name__ == "__main__":

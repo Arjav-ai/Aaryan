@@ -151,3 +151,12 @@ Every prop row has three boxes: Line offered, Over odds, Under odds. Type what t
 - Scores come from two places and the page keeps the newer: `live.json` (published by a run) and a live database document `live/current` that a tracking run updates every ~2 minutes without republishing the page (the page subscribes with `onSnapshot`).
 - **Keep scores live (90 min)** starts the scheduled task "Live tracking for Prop Finder" (`src/betsuggester/live.py --until ...` + `ArtifactData set` in a loop, stops early when nothing is in play). A page cannot fetch scores itself, so a Claude run has to be active; each run uses part of the owner's Claude usage.
 - Tests: `tests/e2e/inplay.test.js`.
+
+## NFL and college football
+
+- Data: ESPN scoreboards and box scores (`us_ingest.py`), stored in `us_games` / `us_player_games`. NFL 2025-26 with box scores; college 2026 with box scores and 2025 scores only (priors). Bookmaker spreads and totals from the same pages are saved for benchmarking.
+- Props (`us_model.py`): passing yards and TDs, rushing yards, receiving yards, receptions. Recency-weighted average of games in that role, pulled toward the role's league average, scaled by what the opposing defence concedes; negative-binomial spread fitted by walk-forward testing (`us_backtest.py props`).
+- Games: the NBA ridge score model reused (`us_backtest.py games` tunes ridge and half-life). Tested on unseen games it does **not** beat the bookmaker: NFL margin miss 12.3 vs 11.8, winner 62% vs 71% (104 games); college 16.0 vs 15.1, 68% vs 71% (507 games).
+- Props are only slightly better than giving every player in a role the league average (log-likelihood gain is small); calibration of the over chances is good.
+- A test caught a real bug: the page's distribution stopped at 300, so a quarterback's 301.5-yard line showed 0%. Now 3000.
+- Not covered: weather, QB changes, college injuries (no free source), touchdown-scorer bets. Tests: `tests/e2e/us.test.js`.

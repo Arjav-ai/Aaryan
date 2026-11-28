@@ -186,8 +186,9 @@ h1{font-size:28px;line-height:1.1}
 .icon{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:16px;cursor:pointer}
 .icon[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .rbtn{min-height:40px;padding:0 16px;font-size:14px}
-.sports{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--seg)}
-.sport{min-height:42px;padding:0;border:0;border-radius:11px;background:none;font-size:15px;color:var(--muted)}
+.sports{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;padding:4px;border-radius:14px;background:var(--seg)}
+.sport{min-height:42px;padding:0 2px;border:0;border-radius:11px;background:none;font-size:14px;color:var(--muted)}
+@media (max-width:400px){.sport{font-size:13px}}
 .sport[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
 .statusrow{margin:0;justify-content:space-between;flex-wrap:nowrap;gap:8px}
 #asof{font-size:13px;min-width:0}
@@ -320,12 +321,22 @@ h3{margin:14px 0 0}
   var LS='propfinder-v1', CAP=0.9, PAGE=40;
   var STATS_NBA=['pts','reb','ast','fg3'];
   var SPORTS={
-    nba:{label:'NBA',file:'predictions.json',tabs:['matches','best','probable'],noun:'game',names:{matches:'Games'},about:[
+    nba:{label:'NBA',crest:'nba',lname:'NBA',file:'predictions.json',tabs:['matches','best','probable'],noun:'game',names:{matches:'Games'},about:[
       '<strong>The percentage</strong> is the model\'s chance that the player lands on your side of the line. Change the line to the one your bookmaker offers and it recalculates.',
       '<strong>Tested on past games</strong> the model had not seen: when it said 70\u201380% the prop hit about 73% of the time. Above 90% it hit between 86% and 94%, depending on the stat, so this page never shows more than 90%.',
       '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. A positive number means the odds pay more than the model thinks the bet is worth. It is an estimate, not a promise. The verdict words (strong value 8% and up, some value 3\u20138%, fair price within 3%, poor value, avoid) are my own cut-offs, and a gap over 15% is flagged as suspicious because it more often means the model is missing something than that you have found a bargain.',
       '<strong>Games:</strong> the game model predicts each team\'s score from attack and defence ratings, home court and back-to-backs. Tested on about 1,000 unseen regular-season games it picked the winner 69% of the time and its chances matched what happened (totals run slightly high). Against DraftKings\' pre-game lines on the same games it did slightly worse (typical margin miss 14.9 points against the bookmaker\'s 14.0) and it added nothing the line did not already contain. Betting every disagreement with the line would have lost about 2% per bet. The model now also adjusts for players ruled out or doubtful; on past games that trimmed the typical margin miss only from 11.65 to 11.54 points (bookmaker 10.93). So treat a gap between this page and your bookmaker as more likely a weakness in this model, which cannot see late injury news or how good a replacement is, than as a bargain.',
       '<strong>Not covered:</strong> the effect of a teammate being out (flagged on the card, not priced in). Top scorers outscored the model by about 0.7 points in testing. Real bookmaker lines have not been back-tested. Only one and a half seasons of games are in the data.']},
+    nfl:{label:'NFL',file:'predictions_nfl.json',tabs:['matches','best','probable'],noun:'game',names:{matches:'Games'},crest:'nfl',byid:true,us:true,lname:'NFL',about:['<strong>The percentage</strong> is the model\'s chance that the player lands on your side of the line. Change the line to the one your bookmaker offers and it recalculates.',
+      '<strong>How players are predicted:</strong> an average of his recent games in that role (attempts, carries, targets), adjusted for how much the opposing defence gives up. Tested on 7,400 player-games the model had not seen, its chances matched what happened, but it was only a little better than giving every player in the same role the league average. Receiving yards and rushing yards swing a lot from week to week, so ranges are wide.',
+      '<strong>Games:</strong> the game model rates each team on points scored and allowed. Tested on 104 unseen games it picked the winner 62% of the time (bookmaker lines: 71%) and its typical margin miss was 12.3 points against the bookmaker\'s 11.8. With only 104 games, the winner rate could easily be off by 5 points either way. It does not beat the bookmaker, so treat a big gap between this page and your bookmaker as a model weakness first.',
+      '<strong>Not covered:</strong> weather, a quarterback change after the list was made, who will actually play (players listed Out are left off; Questionable and Doubtful are flagged), and touchdown scorer bets. This is the newest part of the page and the least tested. Only this season and last are in the data.',
+      '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. The verdict words (strong value 8% and up, some value 3\u20138%, fair price within 3%, poor value, avoid) are my own cut-offs, and a gap over 15% is flagged as suspicious. This page places nothing. Check what is legal where you are, and only stake money you can afford to lose.']},
+    cfb:{label:'College',file:'predictions_cfb.json',tabs:['matches','best','probable'],noun:'game',names:{matches:'Games'},crest:'cfb',byid:true,us:true,lname:'College football',about:['<strong>The percentage</strong> is the model\'s chance that the player lands on your side of the line. Change the line to the one your bookmaker offers and it recalculates.',
+      '<strong>How players are predicted:</strong> the same method as the NFL, from this season\'s games only. Tested on about 10,000 player-games the model had not seen, its chances matched what happened but beat a flat league average by very little.',
+      '<strong>Games:</strong> tested on 500 unseen games it picked the winner 68% of the time (bookmaker lines: 71%) and missed the margin by 16.0 points against the bookmaker\'s 15.1. College scores swing more than the NFL, and teams play few games, so ratings are rougher.',
+      '<strong>Not covered:</strong> injuries and who is playing (no free source), quarterback changes, weather, bowl and playoff effects. Only the top players per team are listed. This is the newest and least tested part of the page.',
+      '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. The verdict words (strong value 8% and up, some value 3\u20138%, fair price within 3%, poor value, avoid) are my own cut-offs, and a gap over 15% is flagged as suspicious. This page places nothing. Check what is legal where you are, and only stake money you can afford to lose.']},
     football:{label:'Football',file:'predictions_soccer.json',tabs:['matches','best','probable','outrights'],noun:'match',about:[
       '<strong>Matches:</strong> tested on 1,400 matches the model had not seen, its win/draw/loss probabilities scored clearly better than a guess based on league averages, and home-win and handicap chances matched what happened. <strong>Total goals is the weakest market</strong> (it said 53% for over 2.5 goals; 56% happened).',
       '<strong>Players:</strong> chances assume the player plays. Line-ups come out about an hour before kick-off, so check he starts. Shots and shots on target were well calibrated over 28,000 test player-games; goals and assists are rare events, so those are rougher, and goals or assists lines above 0.5 were not tested.',
@@ -356,7 +367,7 @@ h3{margin:14px 0 0}
   function dist(mu,alpha){
     var key=mu+'|'+alpha; if(cache[key])return cache[key];
     var n=1/alpha,p=n/(n+mu),pmf=[Math.pow(p,n)],cdf=[pmf[0]];
-    for(var k=0;k<300&&cdf[k]<0.999999;k++){var nx=pmf[k]*(k+n)/(k+1)*(1-p);pmf.push(nx);cdf.push(cdf[k]+nx);}
+    for(var k=0;k<3000&&cdf[k]<0.999999;k++)    /* 3000: yardage stats reach into the hundreds */{var nx=pmf[k]*(k+n)/(k+1)*(1-p);pmf.push(nx);cdf.push(cdf[k]+nx);}
     return cache[key]={pmf:pmf,cdf:cdf};
   }
   function CDF(d,k){return k<0?0:(k>=d.cdf.length?1:d.cdf[k])}
@@ -602,7 +613,7 @@ h3{margin:14px 0 0}
       sels.map(function(s){return optHTML(m,kind,s)}).join('')+'</div></div>';
   }
   function tn(m,side){return m[side+'_name']||m[side]}                       // team display name
-  function cid(m,side){return m.grid?m[side+'_id']:'nba/'+m[side]}           // crest file: football by ESPN id, NBA by team code
+  function cid(m,side){var sp=SPORTS[S.sport];return m.grid?m[side+'_id']:(sp.crest||'nba')+'/'+(sp.byid?m[side+'_id']:m[side])}           // crest file: football by ESPN id, NBA by team code
   function order(m){return m.grid?['home','away']:['away','home']}          // football: home first; NBA: away first ("Miami at Philadelphia")
   function noun(){return SPORTS[S.sport].noun||'match'}
   function nouns(){return noun()==='match'?'matches':noun()+'s'}
@@ -626,7 +637,7 @@ h3{margin:14px 0 0}
     var foot=m.grid?'<span>Draw '+pct1(pr.draw)+'</span><span>Expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1)+'</span>'
                :(m.nba?'<span>Predicted '+Math.round(m.nba.mu_away)+' \u2013 '+Math.round(m.nba.mu_home)+'</span>':'')+'<span>'+(nOut?nOut+' ruled out':'No one ruled out')+'</span>';
     return '<button type="button" class="mrow" data-open="'+esc(m.id)+'" aria-label="'+esc(tn(m,'away')+' at '+tn(m,'home')+': open')+'">'+
-      '<div class="mmeta"><span>'+esc(timeLabel(m))+'</span><span>'+esc(m.league_name||'NBA')+'</span></div>'+
+      '<div class="mmeta"><span>'+esc(timeLabel(m))+'</span><span>'+esc(m.league_name||(SPORTS[S.sport].lname||'NBA'))+'</span></div>'+
       order(m).map(function(sd){return '<div class="mline">'+crest(cid(m,sd),tn(m,sd),32)+'<span class="mname">'+esc(tn(m,sd))+'</span>'+(pr?'<b class="mpct">'+pct1(pr[sd])+'</b>':'')+'</div>'}).join('')+
       '<div class="mfoot">'+foot+'<span>'+(np?np+' players':'no player data')+' \u203a</span></div></button>';
   }
@@ -634,12 +645,14 @@ h3{margin:14px 0 0}
   function inPlayList(){
     var by={}, out=[], q=S.q.trim().toLowerCase();
     if(LV)LV.games.forEach(function(g){if(g.sport===S.sport&&g.state==='in'){by[g.id]=g;}});
-    cur.d.started.forEach(function(m){if(!by[m.id])by[m.id]={sport:S.sport,id:String(m.id),state:'started',league_name:m.league_name||'NBA',league:m.league,start:m.start,home:m.home&&m.home.length>4?(m.home_name||m.home):(m.home_name||m.home),away:m.away_name||m.away,home_score:null,away_score:null,home_id:m.home_id,away_id:m.away_id,home_code:m.home,away_code:m.away,_m:m};});
+    cur.d.started.forEach(function(m){if(!by[m.id])by[m.id]={sport:S.sport,id:String(m.id),state:'started',league_name:m.league_name||(SPORTS[S.sport].lname||'NBA'),league:m.league,start:m.start,home:m.home&&m.home.length>4?(m.home_name||m.home):(m.home_name||m.home),away:m.away_name||m.away,home_score:null,away_score:null,home_id:m.home_id,away_id:m.away_id,home_code:m.home,away_code:m.away,_m:m};});
     Object.keys(by).forEach(function(k){var g=by[k];if(!q||(g.home+' '+g.away).toLowerCase().indexOf(q)>=0)if(S.lg==='all'||!g.league||g.league===S.lg)out.push(g)});
     out.sort(function(a,b){return a.start<b.start?-1:1});
     return out;
   }
-  function lvCrest(g,sd){return crest(g.sport==='nba'?'nba/'+g[sd+'_code']:g[sd+'_id'],g[sd],32)}
+  function lcid(g,sd){return g.sport==='football'?g[sd+'_id']:g.sport==='nba'?'nba/'+g[sd+'_code']:g.sport+'/'+g[sd+'_id']}
+  function lclock(g){return g.sport==='football'?(g.clock||g.detail||'Live'):(g.detail||'Live')}
+  function lvCrest(g,sd){return crest(lcid(g,sd),g[sd],32)}
   function lvAgoText(){var a=lvAge();return a==null?'':a<1?'just now':a+' min ago'}
   function inPlayHTML(){
     var L=inPlayList(); if(!L.length)return '';
@@ -647,7 +660,7 @@ h3{margin:14px 0 0}
     var h='<h3 class="gh live-h"><span class="mlive"><i class="dot"></i>In play now</span><span class="meta">'+(LV?'scores '+lvAgoText():'scores not loaded')+(tr?' \u00b7 tracking on':'')+'</span></h3>';
     if(!tr)h+='<div class="rrow lvact"><button type="button" class="primary" data-lv="track"'+(rmcp&&!lbusy&&trackWait()<=0?'':' disabled')+'>Keep these scores live (90 min)</button><button type="button" data-lv="update"'+(rmcp&&!lbusy&&lvWait()<=0?'':' disabled')+'>Update once</button></div>';
     L.forEach(function(g){
-      var has=g.home_score!=null, st=g.state==='in'?'<span class="mlive"><i class="dot"></i>'+esc(g.sport==='nba'?(g.detail||'Live'):(g.clock||g.detail||'Live'))+'</span>':'<span>Started</span>';
+      var has=g.home_score!=null, st=g.state==='in'?'<span class="mlive"><i class="dot"></i>'+esc(lclock(g))+'</span>':'<span>Started</span>';
       h+='<button type="button" class="mrow" data-live="'+esc(g.id)+'"><div class="mmeta">'+st+'<span>'+esc(g.league_name||'')+'</span></div>'+
         ['away','home'].map(function(sd){return '<div class="mline">'+lvCrest(g,sd)+'<span class="mname">'+esc(g[sd])+'</span>'+(has?'<b class="mscore">'+g[sd+'_score']+'</b>':'')+'</div>'}).join('')+
         '<div class="mfoot"><span>'+(has?'':'Score not loaded yet')+'</span><span>Details \u203a</span></div></button>';
@@ -657,15 +670,15 @@ h3{margin:14px 0 0}
   function liveDetailHTML(id){
     var g=null; if(LV)LV.games.forEach(function(x){if(x.id===id)g=x}); 
     var m=null; cur.d.started.forEach(function(x){if(String(x.id)===id)m=x});
-    if(!g&&m)g={sport:S.sport,id:id,state:'started',league_name:m.league_name||'NBA',home:m.home_name||m.home,away:m.away_name||m.away,home_score:null,away_score:null,home_id:m.home_id,away_id:m.away_id,home_code:m.home,away_code:m.away};
+    if(!g&&m)g={sport:S.sport,id:id,state:'started',league_name:m.league_name||(SPORTS[S.sport].lname||'NBA'),home:m.home_name||m.home,away:m.away_name||m.away,home_score:null,away_score:null,home_id:m.home_id,away_id:m.away_id,home_code:m.home,away_code:m.away};
     if(!g)return '<div class="empty"><strong>This game is no longer listed</strong>It may have finished. Open Live for final scores.</div>';
     var has=g.home_score!=null, on=g.state==='in', fin=g.state==='post';
-    var stat=on?'<span class="mlive"><i class="dot"></i>'+esc(g.sport==='nba'?(g.detail||'Live'):(g.clock||g.detail||'Live'))+'</span>':fin?'<b>'+esc(g.detail||'Final')+'</b>':'Started';
+    var stat=on?'<span class="mlive"><i class="dot"></i>'+esc(lclock(g))+'</span>':fin?'<b>'+esc(g.detail||'Final')+'</b>':'Started';
     var pre='';
     if(m){var pr=matchProbs(m);
       pre='<div class="meta dmeta">Before the start the model expected '+(m.grid?'goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1)+(pr?' \u00b7 win chances '+pct1(pr.home)+' / draw '+pct1(pr.draw)+' / '+pct1(pr.away):''):'a score of '+Math.round(m.nba.mu_away)+' \u2013 '+Math.round(m.nba.mu_home)+(pr?' \u00b7 win chances '+pct1(pr.away)+' / '+pct1(pr.home):''))+'.</div>';}
     return '<div><button type="button" class="chip" data-back="1">\u2190 All '+nouns()+'</button></div>'+
-      '<article class="card"><div class="dhead">'+['away','home'].map(function(sd,i){return (i?'<div class="dvs">'+(g.sport==='football'?'v':'at')+'</div>':'')+'<div class="dteam">'+crest(g.sport==='nba'?'nba/'+g[sd+'_code']:g[sd+'_id'],g[sd],56)+'<span>'+esc(g[sd])+'</span></div>'}).join('')+'</div>'+
+      '<article class="card"><div class="dhead">'+['away','home'].map(function(sd,i){return (i?'<div class="dvs">'+(g.sport==='football'?'v':'at')+'</div>':'')+'<div class="dteam">'+crest(lcid(g,sd),g[sd],56)+'<span>'+esc(g[sd])+'</span></div>'}).join('')+'</div>'+
       (has?'<div class="bigscore">'+g.away_score+' \u2013 '+g.home_score+'</div>':'<div class="bigscore">\u2013</div>')+
       '<div class="meta dmeta">'+stat+' \u00b7 '+esc(g.league_name||'')+(LV?' \u00b7 scores '+lvAgoText():'')+'</div>'+pre+'</article>'+
       '<div class="notice">Bets and props close when a game starts, so this page does not list them for a game in play. The chances above were made before the start.</div>'+
@@ -679,7 +692,7 @@ h3{margin:14px 0 0}
     return ip+out;
   }
   function adjHTML(m){
-    var n=m.nba&&m.nba.adj_notes; if(!n||!n.length)return '<p class="hint">No injury adjustment: nobody on the injury list moves the numbers by more than 0.1 points.</p>';
+    var n=m.nba&&m.nba.adj_notes; if(SPORTS[S.sport].us)return '<p class="hint">The game chances use team ratings only. Injuries and who is playing are not priced in.</p>'; if(!n||!n.length)return '<p class="hint">No injury adjustment: nobody on the injury list moves the numbers by more than 0.1 points.</p>';
     return '<article class="card"><div class="meta"><strong>Lineup adjustments, already included</strong> (effect on each team\'s expected margin)</div>'+n.map(function(x){
       return '<div class="mline"><span class="mname" style="font-size:14px;font-weight:500">'+esc(x.player)+' <span class="meta">'+esc(x.status)+' \u00b7 '+esc(x.team)+'</span></span><b class="mpct" style="font-size:16px">'+(x.pts>0?'+':'\u2212')+Math.abs(x.pts).toFixed(1)+'</b></div>'}).join('')+
       '<div class="meta">Players ruled out or doubtful count in full; day-to-day and questionable players count partly. Each point of margin here is what past games support, which is small.</div></article>';
@@ -689,11 +702,11 @@ h3{margin:14px 0 0}
     var xg=football?' \u00b7 expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1):'';
     var head='<div><button type="button" class="chip" data-back="1">\u2190 All '+nouns()+'</button></div>'+
       '<article class="card"><div class="dhead">'+order(m).map(function(sd,i){return (i?'<div class="dvs">'+(football?'v':'at')+'</div>':'')+'<div class="dteam">'+crest(cid(m,sd),tn(m,sd),56)+'<span>'+esc(tn(m,sd))+'</span></div>'}).join('')+'</div>'+
-      '<div class="meta dmeta">'+esc(m.league_name||'NBA')+' \u00b7 '+esc(dayLabel(m))+' '+esc(timeLabel(m))+xg+'</div>'+
+      '<div class="meta dmeta">'+esc(m.league_name||(SPORTS[S.sport].lname||'NBA'))+' \u00b7 '+esc(dayLabel(m))+' '+esc(timeLabel(m))+xg+'</div>'+
       (bets?'<div class="seg" role="group" aria-label="View"><button data-mv="props" aria-pressed="'+(S.mview==='props')+'">Player props</button><button data-mv="bets" aria-pressed="'+(S.mview==='bets')+'">'+(football?'Match bets':'Game bets')+'</button></div>':'')+'</article>';
     if(bets&&S.mview==='bets'&&!football){
       var nb=m.nba, os=['away','home'];
-      return head+'<p class="hint">Chances from the game model: it predicts each team\'s score ('+Math.round(nb.mu_away)+' \u2013 '+Math.round(nb.mu_home)+'). It already counts players ruled out or doubtful (listed below) but cannot know late news. Type the odds you are offered to see the edge.</p>'+adjHTML(m)+'<article class="card" data-mcard="'+esc(m.id)+'">'+
+      return head+'<p class="hint">Chances from the game model: it predicts each team\'s score ('+Math.round(nb.mu_away)+' \u2013 '+Math.round(nb.mu_home)+'). '+(SPORTS[S.sport].us?'':'It already counts players ruled out or doubtful (listed below) but cannot know late news. ')+'Type the odds you are offered to see the edge.</p>'+adjHTML(m)+'<article class="card" data-mcard="'+esc(m.id)+'">'+
         marketHTML(m,'ml','Moneyline',os)+marketHTML(m,'spr','Spread',os)+marketHTML(m,'ptot','Total points',['over','under'])+'</article>';
     }
     if(football&&S.mview==='bets'){
@@ -840,16 +853,16 @@ h3{margin:14px 0 0}
   function settle(b){
     if(b.ty==='outright')return{s:'open',note:'decided at the end of the season'};
     if(!RESULTS)return{s:'wait',note:'results not loaded'};
-    var arr=b.sp==='football'?RESULTS.football:RESULTS.nba, g=arr.filter(function(x){return x.key===b.gk})[0];
+    var arr=b.sp==='football'?RESULTS.football:RESULTS[b.sp]||[], g=arr.filter(function(x){return x.key===b.gk})[0];
     if(!g)return (Date.now()-b.t)/864e5>(RESULTS.days||21)-3?{s:'unknown',note:'too old to find a result'}:{s:'wait',note:'waiting for the result'};
     var out;
     if(b.ty==='prop'){
       var rec=g.players[b.pl]; if(!rec)return{s:'void',note:'did not play'};
-      var v=rec[(b.sp==='football'?RESULTS.football_stats:RESULTS.nba_stats).indexOf(b.st)];
+      var v=rec[(b.sp==='football'?RESULTS.football_stats:RESULTS[b.sp+'_stats']||[]).indexOf(b.st)];
       out=b.sd==='over'?cmpOver(v,b.ln):cmpUnder(v,b.ln);
       return fin(b,out,'finished with '+v);
     }
-    if(b.sp==='nba'){
+    if(b.sp!=='football'){
       var mg=g.home_pts-g.away_pts, tot=g.home_pts+g.away_pts;
       if(b.kd==='ml')out=(b.se==='home'?mg>0:mg<0)?'won':'lost';
       else if(b.kd==='spr')out=b.se==='home'?(mg+b.ln>0?'won':(mg+b.ln===0?'push':'lost')):(-mg-b.ln>0?'won':(-mg-b.ln===0?'push':'lost'));
@@ -1138,12 +1151,12 @@ h3{margin:14px 0 0}
   function liveBadge(){var b=$('#livebtn'); if(!b)return; var n=liveCount(); b.innerHTML='<span class="ico">'+ICON.live+'</span><span class="lab">Live</span>'+(n?'<span class="n">'+n+'</span>':'');}
   function lvAge(){if(!LV)return null;return Math.round((Date.now()-new Date(LV.generated_at).getTime())/60000)}
   function lvStatus(g){
-    if(g.state==='in')return '<span class="lst on"><i class="dot"></i>'+esc(g.sport==='nba'?(g.detail||'Live'):(g.clock||g.detail||'Live'))+'</span>';
+    if(g.state==='in')return '<span class="lst on"><i class="dot"></i>'+esc(lclock(g))+'</span>';
     if(g.state==='post')return '<span class="lst">'+esc(g.detail||'Final')+'</span>';
     try{return '<span class="lst">'+esc(new Date(g.start).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'}))+'</span>'}catch(e){return ''}
   }
   function lvRow(g){
-    var pre=g.state==='pre', cid=function(sd){return g.sport==='nba'?'nba/'+g[sd+'_code']:g[sd+'_id']};
+    var pre=g.state==='pre', cid=function(sd){return lcid(g,sd)};
     var win=g.state==='post'?(g.home_score>g.away_score?'home':g.away_score>g.home_score?'away':''):'';
     var line=function(sd){return '<div class="lt">'+crest(cid(sd),g[sd],22)+'<span'+(win&&win!==sd?' style="color:var(--muted)"':'')+'>'+esc(g[sd])+'</span><b>'+(pre?'':g[sd+'_score'])+'</b></div>'};
     return '<div class="lrow"><div class="lteams">'+line('away')+line('home')+'</div>'+lvStatus(g)+'</div>';

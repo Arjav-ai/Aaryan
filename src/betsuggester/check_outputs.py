@@ -11,7 +11,7 @@ from pathlib import Path
 
 from .db import DB_PATH
 
-MIN_ROWS = {"games": 1580, "player_games": 34000, "soccer_matches": 2500, "soccer_player_games": 79000}   # floors: today's counts
+MIN_ROWS = {"games": 1580, "player_games": 34000, "soccer_matches": 2500, "soccer_player_games": 79000, "us_games": 1500, "us_player_games": 85000}   # floors: today's counts
 MAX_AGE_HOURS = 3
 
 
@@ -35,7 +35,7 @@ def main() -> int:
         n = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
         if n < floor:
             print(f"DATABASE PROBLEM: {t} has {n} rows (expected at least {floor})"); bad = True
-    for name, path, min_players in (("NBA", "data/predictions.json", 50), ("Football", "data/predictions_soccer.json", 200)):
+    for name, path, min_players in (("NBA", "data/predictions.json", 50), ("Football", "data/predictions_soccer.json", 200), ("NFL", "data/predictions_nfl.json", 40), ("College", "data/predictions_cfb.json", 100)):
         problems = []
         try:
             d = json.loads(Path(path).read_text())
@@ -44,10 +44,13 @@ def main() -> int:
                 check_players(d, min_players, problems)
             else:
                 print(f"  note: {name} has no upcoming games right now (break / off-season): that is fine")
-            if name == "NBA":
+            if name in ("NBA", "NFL", "College"):
+                lo, hi, mx = {"NBA": (170, 270, 30), "NFL": (20, 80, 35), "College": (20, 110, 60)}[name]
                 for g in d["games"]:
                     n = g.get("nba")
-                    if not n or not all(math.isfinite(n[k]) for k in ("mu_home", "mu_away", "mu_margin", "mu_total")) or not (170 < n["mu_total"] < 270) or abs(n["mu_margin"]) > 30:
+                    if name != "NBA" and n is None:
+                        continue          # a team the model has not seen: props only
+                    if not n or not all(math.isfinite(n[k]) for k in ("mu_home", "mu_away", "mu_margin", "mu_total")) or not (lo < n["mu_total"] < hi) or abs(n["mu_margin"]) > mx:
                         problems.append(f"bad game numbers for {g['away']} at {g['home']}"); break
             if name == "Football":
                 for g in d["games"]:

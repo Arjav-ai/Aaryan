@@ -60,9 +60,42 @@ def fetch_nba() -> str:
     return f"{got} of {len(teams)} NBA logos"
 
 
+def fetch_us(league: str, path: str, extra: dict) -> str:
+    """Logos for NFL / college football teams that appear in the predictions -> site/crests/<league>/<espn team id>.png"""
+    from . import espn
+    f = Path(f"data/predictions_{league}.json")
+    if not f.exists():
+        return "no predictions yet"
+    d = json.loads(f.read_text())
+    need = {g[k] for g in d["games"] for k in ("home_id", "away_id")}
+    out = OUT / league
+    out.mkdir(parents=True, exist_ok=True)
+    teams = espn.get(path + "/teams", ttl=86400, limit=500, **extra)["sports"][0]["leagues"][0]["teams"]
+    got = 0
+    for t in teams:
+        t = t["team"]
+        if t["id"] not in need:
+            continue
+        dest = out / f"{t['id']}.png"
+        if dest.exists() and dest.stat().st_size > 200:
+            got += 1; continue
+        if not t.get("logos"):
+            continue
+        img = t["logos"][0]["href"].replace("https://a.espncdn.com", "")
+        r = requests.get(f"https://a.espncdn.com/combiner/i?img={img}&w=96&h=96", headers=HEADERS, timeout=30)
+        if r.status_code == 200 and len(r.content) > 200:
+            dest.write_bytes(r.content); got += 1
+    return f"{got} of {len(need)} logos"
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     print("NBA:", fetch_nba())
+    for lg, path, extra in (("nfl", "football/nfl", {}), ("cfb", "football/college-football", {"groups": 80})):
+        try:
+            print(lg.upper() + ":", fetch_us(lg, path, extra))
+        except Exception as e:
+            print(lg.upper() + ": skipped", e)
     ids = sorted(team_ids())
     with ThreadPoolExecutor(4) as pool:
         results = dict(zip(ids, pool.map(fetch, ids)))

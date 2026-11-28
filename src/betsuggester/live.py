@@ -37,12 +37,13 @@ def parse(ev: dict, sport: str, league: str, league_name: str) -> dict | None:
 
 
 def fetch_one(args):
-    sport, league, name, path = args
+    sport, league, name, path, *rest = args
+    extra = rest[0] if rest else {}
     out = []
     today = dt.datetime.now(dt.timezone.utc).date()
     for d in (today - dt.timedelta(days=1), today):
         try:
-            sb = espn.get(path + "/scoreboard", ttl=0, pace=False, dates=d.strftime("%Y%m%d"))
+            sb = espn.get(path + "/scoreboard", ttl=0, pace=False, dates=d.strftime("%Y%m%d"), limit=400, **extra)
         except Exception as e:      # one league failing must not hide the others
             print(f"{name}: skipped ({e})")
             continue
@@ -51,8 +52,8 @@ def fetch_one(args):
 
 
 def main(until: str | None = None):
-    jobs = [("nba", "nba", "NBA", "basketball/nba")] + [("football", k, v, f"soccer/{k}") for k, v in LEAGUES.items()]
-    with ThreadPoolExecutor(9) as pool:
+    jobs = [("nba", "nba", "NBA", "basketball/nba"), ("nfl", "nfl", "NFL", "football/nfl"), ("cfb", "cfb", "College football", "football/college-football", {"groups": 80})] + [("football", k, v, f"soccer/{k}") for k, v in LEAGUES.items()]
+    with ThreadPoolExecutor(11) as pool:
         rows = [r for part in pool.map(fetch_one, jobs) for r in part]
     seen, uniq = set(), []
     for r in rows:

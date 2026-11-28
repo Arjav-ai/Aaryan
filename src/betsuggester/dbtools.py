@@ -34,7 +34,7 @@ def restore():
     conn = sqlite3.connect(DB_PATH)
     conn.executescript(DUMP.read_text(encoding="utf-8"))
     conn.commit()
-    n = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("games", "player_games", "soccer_matches", "soccer_player_games")}
+    n = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ("games", "player_games", "soccer_matches", "soccer_player_games", "us_games", "us_player_games")}
     print("restored database:", n)
 
 
