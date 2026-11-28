@@ -160,3 +160,12 @@ Every prop row has three boxes: Line offered, Over odds, Under odds. Type what t
 - Props are only slightly better than giving every player in a role the league average (log-likelihood gain is small); calibration of the over chances is good.
 - A test caught a real bug: the page's distribution stopped at 300, so a quarterback's 301.5-yard line showed 0%. Now 3000.
 - Not covered: weather, QB changes, college injuries (no free source), touchdown-scorer bets. Tests: `tests/e2e/us.test.js`.
+
+## Tennis (ATP and WTA singles)
+
+- Data: ESPN tournament scoreboards scanned every 4 days since 2025-01-01 (`tennis_ingest.py` -> `tennis_matches`). Grand Slam scoreboards list both tours, so each tour keeps only its own singles.
+- Match winner: Elo ratings per tour, each match predicted only from earlier matches (`tennis_model.py`). 2026 test: ATP logloss 0.637, 63% winners; WTA 0.641, 62% (coin flip 0.693); calibration within a few points.
+- Games: a game-by-game simulation (hold-of-serve rates set so the match-winner chance equals Elo), then corrections measured in `tennis_backtest.py`: the simulation ran 1.5-2 games high and real totals are right-skewed, so the page's bell curve is centred on the median. Chances near the middle of the range matched what happened; far from the middle they are 5-10 points off.
+- Best-of-5 (men at majors) is flagged from the tournament, so qualifying matches at majors are treated as best-of-5 by mistake.
+- Not covered: surface, injuries/withdrawals, fatigue, live tennis scores, props. No bookmaker prices to compare with. It is off-season right now, so few matches are listed.
+- Tests: `tests/e2e/tennis.test.js` (includes settling a tracked bet and voiding a retirement).

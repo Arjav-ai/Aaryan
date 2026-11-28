@@ -51,6 +51,12 @@ def build(days: int = DAYS) -> dict:
             rows.append({"key": f"{r.date}|{r.home_abbr}", "home": r.home_abbr, "away": r.away_abbr, "home_pts": int(r.home_pts), "away_pts": int(r.away_pts),
                          "players": {x.player: [int(getattr(x, s)) for s in STAT_ORDER] for x in p.itertuples()} if p is not None else {}})
         out[lg] = rows
+    # tennis: key = date|first player's name; games decide handicap and total, sets decide the winner; retirements/walkovers are void
+    out["tennis"] = []
+    tm = pd.read_sql_query("SELECT * FROM tennis_matches WHERE state='post' AND date >= ?", conn, params=(since,))
+    for r in tm.itertuples(index=False):
+        out["tennis"].append({"key": f"{r.date[:10]}|{r.p1}", "home": r.p1, "away": r.p2, "home_pts": int(r.games1), "away_pts": int(r.games2),
+                              "home_sets": int(r.sets1), "away_sets": int(r.sets2), "void": r.status != "Final", "players": {}})
     return out
 
 

@@ -260,6 +260,8 @@ h3{margin:14px 0 0}
 .live-h .meta{font-weight:400}
 .lvact{margin:0}
 .bigscore{text-align:center;font-family:var(--font-head);font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.rbtn{white-space:nowrap}
+@media (max-width:340px){.sport{font-size:12px}.sports{padding:3px;gap:2px}h1{font-size:22px}.hdr-actions{gap:6px}.rbtn{padding:0 12px}}
 @media (max-width:370px){.srow{grid-template-columns:minmax(0,1fr) 58px 58px 58px}.tab,.dockbtn{font-size:10.5px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
@@ -337,6 +339,10 @@ h3{margin:14px 0 0}
       '<strong>Games:</strong> tested on 500 unseen games it picked the winner 68% of the time (bookmaker lines: 71%) and missed the margin by 16.0 points against the bookmaker\'s 15.1. College scores swing more than the NFL, and teams play few games, so ratings are rougher.',
       '<strong>Not covered:</strong> injuries and who is playing (no free source), quarterback changes, weather, bowl and playoff effects. Only the top players per team are listed. This is the newest and least tested part of the page.',
       '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. The verdict words (strong value 8% and up, some value 3\u20138%, fair price within 3%, poor value, avoid) are my own cut-offs, and a gap over 15% is flagged as suspicious. This page places nothing. Check what is legal where you are, and only stake money you can afford to lose.']},
+    tennis:{label:'Tennis',file:'predictions_tennis.json',tabs:['matches','best'],noun:'match',names:{matches:'Matches'},crest:'tennis',nocrest:true,vs:true,us:true,lname:'Tennis',mk:{ml:'Match winner',spr:'Games handicap',ptot:'Total games',line:'Games line',spl:'Handicap (first player)',unit:'games'},about:['<strong>Match winner:</strong> from Elo ratings, built from every ATP or WTA singles result since the start of 2025 (this season and last). Each match is rated before it is played. Tested on 2026 matches the model had not seen, its chances matched what happened (ATP 63% of winners picked, WTA 62%, about 0.64 on a scale where a coin flip is 0.69). Surface (clay, grass, hard) is not used, so a clay specialist on grass can be mis-rated.',
+      '<strong>Games:</strong> total games and games handicap come from a game-by-game simulation, corrected to match past results. Near the middle of the range the chances matched what happened; for lines far from the middle they are rougher (long matches happen more often than the bell curve says). Best-of-five (men at Grand Slams) is rougher still.',
+      '<strong>Not covered:</strong> surface, injuries and withdrawals, fatigue from earlier rounds, live scores, player props. Matches with a player the data has barely seen are left out. The bookmaker\'s prices were not available to compare with, so there is no evidence this beats them. This is the newest and least tested part of the page.',
+      '<strong>Edge</strong> is the expected profit for every 100 you stake at the odds you typed. The verdict words (strong value 8% and up, some value 3\u20138%, fair price within 3%, poor value, avoid) are my own cut-offs. This page places nothing. Check what is legal where you are, and only stake money you can afford to lose.']},
     football:{label:'Football',file:'predictions_soccer.json',tabs:['matches','best','probable','outrights'],noun:'match',about:[
       '<strong>Matches:</strong> tested on 1,400 matches the model had not seen, its win/draw/loss probabilities scored clearly better than a guess based on league averages, and home-win and handicap chances matched what happened. <strong>Total goals is the weakest market</strong> (it said 53% for over 2.5 goals; 56% happened).',
       '<strong>Players:</strong> chances assume the player plays. Line-ups come out about an hour before kick-off, so check he starts. Shots and shots on target were well calibrated over 28,000 test player-games; goals and assists are rare events, so those are rougher, and goals or assists lines above 0.5 were not tested.',
@@ -403,7 +409,7 @@ h3{margin:14px 0 0}
   function fmtLine(x){return Number.isInteger(x)?String(x):x.toFixed(1)}
   function fmtPct(e){return e.capped?'90%+':(e.win<0.005?'<1%':Math.round(e.win*100)+'%')}
   function when(g){try{return new Date(g.start).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'})}catch(e){return g.date}}
-  function gname(g){return g.league_name?g.home+' v '+g.away:g.away+' at '+g.home}
+  function gname(g){return (g.league_name||SPORTS[S.sport].vs)?g.home+' v '+g.away:g.away+' at '+g.home}
   function edgePill(ev,short){
     if(ev==null)return '';
     var pc=Math.round(ev*100);
@@ -546,7 +552,7 @@ h3{margin:14px 0 0}
 
   /* ---------- crests ---------- */
   function initials(n){var w=String(n||'').replace(/[^A-Za-z0-9 ]/g,' ').trim().split(/\s+/);return (((w[0]||'')[0]||'')+((w[1]||'')[0]||'')).toUpperCase()}
-  function crest(id,name,size){return '<img class="crest" src="crests/'+esc(id)+'.png" width="'+size+'" height="'+size+'" alt="" loading="lazy" data-n="'+esc(initials(name))+'">'}
+  function crest(id,name,size){if(id==='none')return '<span class="crest ph" style="width:'+size+'px;height:'+size+'px">'+esc(initials(name))+'</span>';return '<img class="crest" src="crests/'+esc(id)+'.png" width="'+size+'" height="'+size+'" alt="" loading="lazy" data-n="'+esc(initials(name))+'">'}
   document.addEventListener('error',function(ev){          // a missing crest becomes an initials badge
     var t=ev.target;
     if(t&&t.tagName==='IMG'&&t.classList&&t.classList.contains('crest')){
@@ -588,7 +594,7 @@ h3{margin:14px 0 0}
   function mLabel(m,kind,sel,line){
     if(kind==='ml')return tn(m,sel)+' to win';
     if(kind==='spr'){var l2=sel==='home'?line:-line;return tn(m,sel)+' '+(l2>0?'+':'')+fmtLine(l2)}
-    if(kind==='ptot')return (sel==='over'?'Over ':'Under ')+fmtLine(line)+' points';
+    if(kind==='ptot')return (sel==='over'?'Over ':'Under ')+fmtLine(line)+' '+mkw('unit','points');
     if(kind==='1x2')return sel==='home'?m.home:sel==='away'?m.away:'Draw';
     if(kind==='hcp'){var l=sel==='home'?line:-line;return (sel==='home'?m.home:m.away)+' '+(l>0?'+':'')+fmtLine(l)}
     if(kind==='tot')return (sel==='over'?'Over ':'Under ')+fmtLine(line)+' goals';
@@ -607,14 +613,16 @@ h3{margin:14px 0 0}
       '<input data-field="modds" type="number" inputmode="decimal" step="0.01" min="1" placeholder="Odds" aria-label="Odds for '+esc(mLabel(m,kind,sel,line))+'" value="'+(e.odds||'')+'">'+
       '<span class="oedge">'+(e.ev!=null?edgePill(e.ev,true)+trackBtn('m|'+mKey(m,kind,sel),e.odds):'<span class="meta">Break-even '+fmtOdds(e.be)+'</span>')+'</span></div>';
   }
+  function mkw(k,d){var mk=SPORTS[S.sport].mk;return (mk&&mk[k])||d}
   function marketHTML(m,kind,title,sels){
-    var line=hasLine(kind)?'<label class="field"><span>'+({hcp:'Home line',tot:'Goals line',spr:'Home spread',ptot:'Points line'}[kind])+'</span><input data-field="mline" type="number" inputmode="decimal" step="0.5" value="'+mLine(m,kind)+'"></label>':'';
+    var line=hasLine(kind)?'<label class="field"><span>'+({hcp:'Home line',tot:'Goals line',spr:mkw('spl','Home spread'),ptot:mkw('line','Points line')}[kind])+'</span><input data-field="mline" type="number" inputmode="decimal" step="0.5" value="'+mLine(m,kind)+'"></label>':'';
     return '<div class="mk" data-key="ML|'+esc(m.id)+'|'+kind+'" data-mid="'+esc(m.id)+'" data-kind="'+kind+'"><div class="mk-head"><div class="mk-title">'+title+'</div>'+line+'</div><div class="opts'+(sels.length===3?' o3':'')+'">'+
       sels.map(function(s){return optHTML(m,kind,s)}).join('')+'</div></div>';
   }
   function tn(m,side){return m[side+'_name']||m[side]}                       // team display name
-  function cid(m,side){var sp=SPORTS[S.sport];return m.grid?m[side+'_id']:(sp.crest||'nba')+'/'+(sp.byid?m[side+'_id']:m[side])}           // crest file: football by ESPN id, NBA by team code
-  function order(m){return m.grid?['home','away']:['away','home']}          // football: home first; NBA: away first ("Miami at Philadelphia")
+  function cid(m,side){var sp=SPORTS[S.sport];if(sp.nocrest)return 'none';return m.grid?m[side+'_id']:(sp.crest||'nba')+'/'+(sp.byid?m[side+'_id']:m[side])}           // crest file: football by ESPN id, NBA by team code
+  function isVs(m){return !!(m&&m.grid)||!!SPORTS[S.sport].vs}
+  function order(m){return isVs(m)?['home','away']:['away','home']}          // football: home first; NBA: away first ("Miami at Philadelphia")
   function noun(){return SPORTS[S.sport].noun||'match'}
   function nouns(){return noun()==='match'?'matches':noun()+'s'}
   function outsOf(m,side){                                                    // players ruled out, from each player's own-team list
@@ -635,11 +643,12 @@ h3{margin:14px 0 0}
     var np=nPlayers(m), pr=matchProbs(m);
     var nOut=outsOf(m,'home').length+outsOf(m,'away').length;
     var foot=m.grid?'<span>Draw '+pct1(pr.draw)+'</span><span>Expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1)+'</span>'
+               :SPORTS[S.sport].mk?'<span>About '+Math.round(m.nba.mu_total)+' games</span><span>Best of '+(m.best_of||3)+'</span>'
                :(m.nba?'<span>Predicted '+Math.round(m.nba.mu_away)+' \u2013 '+Math.round(m.nba.mu_home)+'</span>':'')+'<span>'+(nOut?nOut+' ruled out':'No one ruled out')+'</span>';
     return '<button type="button" class="mrow" data-open="'+esc(m.id)+'" aria-label="'+esc(tn(m,'away')+' at '+tn(m,'home')+': open')+'">'+
       '<div class="mmeta"><span>'+esc(timeLabel(m))+'</span><span>'+esc(m.league_name||(SPORTS[S.sport].lname||'NBA'))+'</span></div>'+
       order(m).map(function(sd){return '<div class="mline">'+crest(cid(m,sd),tn(m,sd),32)+'<span class="mname">'+esc(tn(m,sd))+'</span>'+(pr?'<b class="mpct">'+pct1(pr[sd])+'</b>':'')+'</div>'}).join('')+
-      '<div class="mfoot">'+foot+'<span>'+(np?np+' players':'no player data')+' \u203a</span></div></button>';
+      '<div class="mfoot">'+foot+'<span>'+(SPORTS[S.sport].mk?'':(np?np+' players':'no player data')+' ')+'\u203a</span></div></button>';
   }
   /* games that have started: scores come from live.json / the live tracker; props close at kick-off */
   function inPlayList(){
@@ -698,16 +707,16 @@ h3{margin:14px 0 0}
       '<div class="meta">Players ruled out or doubtful count in full; day-to-day and questionable players count partly. Each point of margin here is what past games support, which is small.</div></article>';
   }
   function detailHTML(m){
-    var football=!!m.grid, bets=!!(m.grid||m.nba); if(!bets)S.mview='props';
+    var football=!!m.grid, bets=!!(m.grid||m.nba), tennis=!!SPORTS[S.sport].mk; if(!bets)S.mview='props'; if(tennis)S.mview='bets';
     var xg=football?' \u00b7 expected goals '+m.xg_home.toFixed(1)+' \u2013 '+m.xg_away.toFixed(1):'';
     var head='<div><button type="button" class="chip" data-back="1">\u2190 All '+nouns()+'</button></div>'+
-      '<article class="card"><div class="dhead">'+order(m).map(function(sd,i){return (i?'<div class="dvs">'+(football?'v':'at')+'</div>':'')+'<div class="dteam">'+crest(cid(m,sd),tn(m,sd),56)+'<span>'+esc(tn(m,sd))+'</span></div>'}).join('')+'</div>'+
+      '<article class="card"><div class="dhead">'+order(m).map(function(sd,i){return (i?'<div class="dvs">'+(isVs(m)?'v':'at')+'</div>':'')+'<div class="dteam">'+crest(cid(m,sd),tn(m,sd),56)+'<span>'+esc(tn(m,sd))+'</span></div>'}).join('')+'</div>'+
       '<div class="meta dmeta">'+esc(m.league_name||(SPORTS[S.sport].lname||'NBA'))+' \u00b7 '+esc(dayLabel(m))+' '+esc(timeLabel(m))+xg+'</div>'+
-      (bets?'<div class="seg" role="group" aria-label="View"><button data-mv="props" aria-pressed="'+(S.mview==='props')+'">Player props</button><button data-mv="bets" aria-pressed="'+(S.mview==='bets')+'">'+(football?'Match bets':'Game bets')+'</button></div>':'')+'</article>';
+      (bets&&!tennis?'<div class="seg" role="group" aria-label="View"><button data-mv="props" aria-pressed="'+(S.mview==='props')+'">Player props</button><button data-mv="bets" aria-pressed="'+(S.mview==='bets')+'">'+(football?'Match bets':'Game bets')+'</button></div>':'')+'</article>';
     if(bets&&S.mview==='bets'&&!football){
-      var nb=m.nba, os=['away','home'];
-      return head+'<p class="hint">Chances from the game model: it predicts each team\'s score ('+Math.round(nb.mu_away)+' \u2013 '+Math.round(nb.mu_home)+'). '+(SPORTS[S.sport].us?'':'It already counts players ruled out or doubtful (listed below) but cannot know late news. ')+'Type the odds you are offered to see the edge.</p>'+adjHTML(m)+'<article class="card" data-mcard="'+esc(m.id)+'">'+
-        marketHTML(m,'ml','Moneyline',os)+marketHTML(m,'spr','Spread',os)+marketHTML(m,'ptot','Total points',['over','under'])+'</article>';
+      var nb=m.nba, os=isVs(m)?['home','away']:['away','home'];
+      return head+'<p class="hint">'+(SPORTS[S.sport].mk?'Match winner from Elo ratings; games from a simulation corrected to past results. Chances far from the middle of the range are rougher. ':'Chances from the game model: it predicts each team\'s score ('+Math.round(nb.mu_away)+' \u2013 '+Math.round(nb.mu_home)+'). '+(SPORTS[S.sport].us?'':'It already counts players ruled out or doubtful (listed below) but cannot know late news. '))+'Type the odds you are offered to see the edge.</p>'+adjHTML(m)+'<article class="card" data-mcard="'+esc(m.id)+'">'+
+        marketHTML(m,'ml',mkw('ml','Moneyline'),os)+marketHTML(m,'spr',mkw('spr','Spread'),os)+marketHTML(m,'ptot',mkw('ptot','Total points'),['over','under'])+'</article>';
     }
     if(football&&S.mview==='bets'){
       return head+'<p class="hint">Chances from the match model. Type the odds you are offered on any option to see the edge.</p><article class="card" data-mcard="'+esc(m.id)+'">'+marketHTML(m,'1x2','Result',['home','draw','away'])+marketHTML(m,'hcp','Handicap',['home','away'])+
@@ -856,6 +865,7 @@ h3{margin:14px 0 0}
     var arr=b.sp==='football'?RESULTS.football:RESULTS[b.sp]||[], g=arr.filter(function(x){return x.key===b.gk})[0];
     if(!g)return (Date.now()-b.t)/864e5>(RESULTS.days||21)-3?{s:'unknown',note:'too old to find a result'}:{s:'wait',note:'waiting for the result'};
     var out;
+    if(g.void)return{s:'void',note:'match not completed'};
     if(b.ty==='prop'){
       var rec=g.players[b.pl]; if(!rec)return{s:'void',note:'did not play'};
       var v=rec[(b.sp==='football'?RESULTS.football_stats:RESULTS[b.sp+'_stats']||[]).indexOf(b.st)];
@@ -864,7 +874,7 @@ h3{margin:14px 0 0}
     }
     if(b.sp!=='football'){
       var mg=g.home_pts-g.away_pts, tot=g.home_pts+g.away_pts;
-      if(b.kd==='ml')out=(b.se==='home'?mg>0:mg<0)?'won':'lost';
+      if(b.kd==='ml'){var ms=g.home_sets!=null?g.home_sets-g.away_sets:mg;out=(b.se==='home'?ms>0:ms<0)?'won':'lost';}
       else if(b.kd==='spr')out=b.se==='home'?(mg+b.ln>0?'won':(mg+b.ln===0?'push':'lost')):(-mg-b.ln>0?'won':(-mg-b.ln===0?'push':'lost'));
       else out=b.se==='over'?cmpOver(tot,b.ln):cmpUnder(tot,b.ln);
       return fin(b,out,'final '+g.away_pts+' \u2013 '+g.home_pts);
@@ -958,7 +968,7 @@ h3{margin:14px 0 0}
         $('#hint').textContent='';
         html=detailHTML(mm);
       }else{
-        $('#hint').textContent='Tap a '+noun()+' to see its player props'+(S.sport==='football'?' and match bets':'')+'. The big percentage is each side\'s chance to win.';
+        $('#hint').textContent=SPORTS[S.sport].mk?'Tap a match for the match winner, games handicap and total games. The big percentage is each player\'s chance to win.':'Tap a '+noun()+' to see its player props'+(S.sport==='football'?' and match bets':'')+'. The big percentage is each side\'s chance to win.';
         html=matchListHTML();
       }
     }else if(S.tab==='outrights'){

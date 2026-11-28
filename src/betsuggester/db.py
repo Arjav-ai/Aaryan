@@ -30,6 +30,10 @@ CREATE TABLE IF NOT EXISTS us_player_games (
   player_id TEXT, player TEXT, pass_att INTEGER, pass_yds INTEGER, pass_td INTEGER, pass_int INTEGER,
   rush_att INTEGER, rush_yds INTEGER, rush_td INTEGER, rec INTEGER, rec_yds INTEGER, rec_td INTEGER, targets INTEGER,
   PRIMARY KEY (game_id, player_id));
+CREATE TABLE IF NOT EXISTS tennis_matches (
+  match_id TEXT PRIMARY KEY, tour TEXT, date TEXT, tournament TEXT, major INTEGER, best_of INTEGER,
+  p1_id TEXT, p1 TEXT, p1_rank INTEGER, p2_id TEXT, p2 TEXT, p2_rank INTEGER,
+  winner INTEGER, sets TEXT, status TEXT, state TEXT, games1 INTEGER, games2 INTEGER, sets1 INTEGER, sets2 INTEGER);
 """
 
 

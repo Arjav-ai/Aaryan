@@ -24,7 +24,7 @@ const bad = async p => { const t = await p.locator('body').innerText(); return /
   const b = await chromium.launch();
   let p = await open(b);
   const sports = await p.locator('.sport').allInnerTexts();
-  ok('sport switch lists NBA, NFL, College, Football', JSON.stringify(sports)==='["NBA","NFL","College","Football"]', sports.join('|'));
+  ok('sport switch lists NBA, NFL, College, Tennis, Football', JSON.stringify(sports)==='["NBA","NFL","College","Tennis","Football"]', sports.join('|'));
   for (const [sp, D, label] of [['nfl', N2, 'NFL'], ['cfb', C2, 'College']]) {
     const t0 = Date.now(); await p.click(`[data-sport=${sp}]`); await p.waitForSelector('.mrow[data-open]'); const ms = Date.now()-t0;
     ok(`${label}: switching loads in under 3 seconds`, ms < 3000, ms+' ms');

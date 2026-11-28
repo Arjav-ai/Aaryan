@@ -11,7 +11,7 @@ from pathlib import Path
 
 from .db import DB_PATH
 
-MIN_ROWS = {"games": 1580, "player_games": 34000, "soccer_matches": 2500, "soccer_player_games": 79000, "us_games": 1500, "us_player_games": 85000}   # floors: today's counts
+MIN_ROWS = {"games": 1580, "player_games": 34000, "soccer_matches": 2500, "soccer_player_games": 79000, "us_games": 1500, "us_player_games": 85000, "tennis_matches": 19000}   # floors: today's counts
 MAX_AGE_HOURS = 3
 
 
@@ -35,14 +35,14 @@ def main() -> int:
         n = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
         if n < floor:
             print(f"DATABASE PROBLEM: {t} has {n} rows (expected at least {floor})"); bad = True
-    for name, path, min_players in (("NBA", "data/predictions.json", 50), ("Football", "data/predictions_soccer.json", 200), ("NFL", "data/predictions_nfl.json", 40), ("College", "data/predictions_cfb.json", 100)):
+    for name, path, min_players in (("NBA", "data/predictions.json", 50), ("Football", "data/predictions_soccer.json", 200), ("NFL", "data/predictions_nfl.json", 40), ("College", "data/predictions_cfb.json", 100), ("Tennis", "data/predictions_tennis.json", 0)):
         problems = []
         try:
             d = json.loads(Path(path).read_text())
             age = age_hours(d)
-            if d["games"]:
+            if d["games"] and name != "Tennis":
                 check_players(d, min_players, problems)
-            else:
+            elif not d["games"]:
                 print(f"  note: {name} has no upcoming games right now (break / off-season): that is fine")
             if name in ("NBA", "NFL", "College"):
                 lo, hi, mx = {"NBA": (170, 270, 30), "NFL": (20, 80, 35), "College": (20, 110, 60)}[name]
@@ -61,6 +61,11 @@ def main() -> int:
                         tot = sum(t[m["key"]] for t in o["teams"])
                         if not any(abs(tot - k) < 0.1 for k in (1, 4, 2, 3, 8, 16, 12)):
                             problems.append(f"{o['name']} {m['label']} adds to {tot:.2f}")
+            if name == "Tennis":
+                for g in d["games"]:
+                    n = g["nba"]
+                    if not (0 < g["p_home"] < 1) or not all(math.isfinite(n[k]) for k in ("mu_total", "sd_total", "mu_margin", "sd_margin")) or not (8 < n["mu_total"] < 60) or n["sd_total"] <= 0:
+                        problems.append(f"bad tennis numbers for {g['home']} v {g['away']}"); break
             status = "FRESH" if age <= MAX_AGE_HOURS else f"STALE ({age:.0f}h old: refresh did not produce new predictions)"
         except Exception as e:
             problems.append(f"unreadable: {e}"); status = "INVALID"
