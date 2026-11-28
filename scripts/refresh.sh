@@ -32,6 +32,7 @@ step "Football: new results and predictions"; tail -n 12 $tmp/soccer.log; [ -f $
 step "NFL + college football: new games and predictions"; tail -n 8 $tmp/us.log; [ -f $tmp/us.ok ] && us_ok=1 || { echo "NFL/college refresh failed (kept the previous predictions)"; us_ok=0; }
 step "Tennis: new matches and predictions"; tail -n 4 $tmp/tennis.log; [ -f $tmp/tennis.ok ] && tennis_ok=1 || { echo "tennis refresh failed (kept the previous predictions)"; tennis_ok=0; }
 step "Recent results (for settling tracked bets)"; $PY -m betsuggester.results || echo "results file failed (tracked bets will wait for the next refresh)"
+step "Prediction log + live scorecard"; $PY -m betsuggester.predlog && $PY -m betsuggester.scorecard || echo "scorecard failed (harmless: the Model record screen keeps its last numbers)"
 step "Live scores (a few seconds)"; $PY -m betsuggester.live || echo "live scores failed (harmless)"
 step "Club crests (new clubs only)"; $PY -m betsuggester.crests || echo "crest download failed (harmless: the page shows initials badges)"
 step "Safety checks";            $PY -m betsuggester.check_outputs; chk=$?

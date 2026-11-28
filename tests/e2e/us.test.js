@@ -26,7 +26,7 @@ const bad = async p => { const t = await p.locator('body').innerText(); return /
   const sports = await p.locator('.sport').allInnerTexts();
   ok('sport switch lists NBA, NFL, College, Tennis, Football', JSON.stringify(sports)==='["NBA","NFL","College","Tennis","Football"]', sports.join('|'));
   for (const [sp, D, label] of [['nfl', N2, 'NFL'], ['cfb', C2, 'College']]) {
-    const t0 = Date.now(); await p.click(`[data-sport=${sp}]`); await p.waitForSelector('.mrow[data-open]'); const ms = Date.now()-t0;
+    const t0 = Date.now(); await p.click(`[data-sport=${sp}]`); await p.waitForFunction(n => document.querySelectorAll('.mrow[data-open]').length === n, D.games.length); const ms = Date.now()-t0;
     ok(`${label}: switching loads in under 3 seconds`, ms < 3000, ms+' ms');
     ok(`${label}: one row per upcoming game (${D.games.length})`, (await p.locator('.mrow[data-open]').count())===D.games.length, String(await p.locator('.mrow[data-open]').count()));
     ok(`${label}: tabs are Games / Best bets / Most probable`, (await p.locator('.tab').allInnerTexts()).map(s=>s.trim()).join('|').replace(/\s+/g,' ').includes('Games'), '');

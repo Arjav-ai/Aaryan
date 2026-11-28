@@ -262,6 +262,21 @@ h3{margin:14px 0 0}
 .bigscore{text-align:center;font-family:var(--font-head);font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
 .rbtn{white-space:nowrap}
 @media (max-width:340px){.sport{font-size:12px}.sports{padding:3px;gap:2px}h1{font-size:22px}.hdr-actions{gap:6px}.rbtn{padding:0 12px}}
+/* bet slip */
+.slp{padding:2px 10px;border:1px solid var(--line);border-radius:99px;background:var(--surface);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer;margin-left:6px}
+.slp.on{background:var(--accent-soft);border-color:var(--accent-soft);color:var(--accent)}
+.slipbar{position:fixed;left:0;right:0;z-index:19;bottom:calc(var(--dockh) + env(safe-area-inset-bottom,0px) + 12px);padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));pointer-events:none}
+.slipbar button{pointer-events:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;max-width:616px;margin:0 auto;min-height:48px;padding:0 16px;border:0;border-radius:14px;background:var(--ink);color:var(--bg);font-size:14px;box-shadow:var(--shadow);cursor:pointer}
+.slipbar .go{font-weight:700}
+body.hasslip{padding-bottom:calc(var(--dockh) + env(safe-area-inset-bottom,0px) + 96px)}
+.pin{display:grid;gap:8px;padding:14px 16px;border-radius:var(--r);background:var(--accent-soft)}
+.pin-h{display:flex;justify-content:space-between;align-items:center}
+.link{border:0;background:none;color:var(--accent);font-weight:600;font-size:13.5px;min-height:32px;cursor:pointer;padding:0}
+.pin-r{display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:14.5px}
+.pin-l{display:grid;min-width:0}
+.pin-l small{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tested{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;display:grid;gap:4px}
+#list .seg{margin-bottom:2px}
 @media (max-width:370px){.srow{grid-template-columns:minmax(0,1fr) 58px 58px 58px}.tab,.dockbtn{font-size:10.5px}}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 </style>
@@ -315,6 +330,7 @@ h3{margin:14px 0 0}
     <ul id="about-list"></ul>
   </details>
 </div>
+<div id="slipbar" class="slipbar" hidden></div>
 <nav class="dock" aria-label="Sections"><div class="dock-in"><div id="tabs" role="tablist" aria-label="Sections"></div><button class="dockbtn" id="livebtn" type="button" aria-pressed="false">Live</button></div></nav>
 
 <script>
@@ -361,7 +377,7 @@ h3{margin:14px 0 0}
   var FKEY='propfinder-filters-open', IKEY='propfinder-intro-seen';
   function lget(k){try{return localStorage.getItem(k)}catch(e){return null}}
   function lset(k,v){try{localStorage.setItem(k,v)}catch(e){}}
-  var S={lm:null,intro:false,view:null,sport:'nba',tab:'probable',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{},ol:null,om:'title',match:null,mview:'props',mteam:'all',lg:'all'};
+  var S={rtab:'mine',slipBook:'',lm:null,intro:false,view:null,sport:'nba',tab:'matches',stat:'all',game:'all',q:'',min:'',target:0.8,side:'over',rows:{},ol:null,om:'title',match:null,mview:'props',mteam:'all',lg:'all'};
   try{var saved=JSON.parse(localStorage.getItem(LS)||'{}');for(var k in saved)S[k]=saved[k];}catch(e){}
   if(!SPORTS[S.sport])S.sport='nba';
   S.shown=PAGE;
@@ -693,8 +709,15 @@ h3{margin:14px 0 0}
       '<div class="notice">Bets and props close when a game starts, so this page does not list them for a game in play. The chances above were made before the start.</div>'+
       (on&&!trackingOn()?'<div class="rrow lvact"><button type="button" class="primary" data-lv="track"'+(rmcp&&!lbusy&&trackWait()<=0?'':' disabled')+'>Keep scores live (90 min)</button><button type="button" data-lv="update"'+(rmcp&&!lbusy&&lvWait()<=0?'':' disabled')+'>Update once</button></div>':'');
   }
+  function openBetsHTML(){
+    if(!LREADY||!LEDGER.length)return '';
+    var open=LEDGER.map(function(b){return{b:b,r:settle(b)}}).filter(function(x){return x.r.s==='wait'}).sort(function(a,b){return b.b.t-a.b.t});
+    if(!open.length)return '';
+    return '<section class="pin" aria-label="Your open bets"><div class="pin-h"><b>Your open bets ('+open.length+')</b><button type="button" class="link" id="pinall">See all</button></div>'+
+      open.slice(0,3).map(function(x){return '<div class="pin-r"><span class="pin-l">'+esc(x.b.lab)+'<small>'+esc(x.b.gl||'')+'</small></span><b>'+fmtOdds(x.b.od)+'</b></div>'}).join('')+(open.length>3?'<div class="meta">+ '+(open.length-3)+' more</div>':'')+'</section>';
+  }
   function matchListHTML(){
-    var ip=inPlayHTML();
+    var ip=openBetsHTML()+inPlayHTML();
     var ms=matchesVisible(); if(!ms.length&&ip)return ip+none('No '+nouns()+' found',''); if(!ms.length)return none('No '+nouns()+' found',cur.d.games.some(function(g){return g.league})?'Try another league or team.':'Try another team.');
     var out='',last='';
     ms.forEach(function(m){var d=dayLabel(m);if(d!==last){out+='<h3 class="gh">'+esc(d)+'</h3>';last=d;}out+=mrowHTML(m);});
@@ -828,7 +851,50 @@ h3{margin:14px 0 0}
   function trackBtn(k,odds){
     if(!odds||!LREADY)return '';
     var t=isTracked(k);
-    return '<button type="button" class="trk" data-track="'+esc(k)+'"'+(t?' disabled':'')+'>'+(t?'Tracked \u2713':'Track bet')+'</button>';
+    return '<button type="button" class="trk" data-track="'+esc(k)+'"'+(t?' disabled':'')+'>'+(t?'Tracked \u2713':'Track bet')+'</button>'+slipBtn(k);
+  }
+  /* ---------- bet slip: combine several bets (the legs' chances multiply; the page says when that is not true) ---------- */
+  var SLIP=[], SKEY='propfinder-slip';
+  try{SLIP=JSON.parse(localStorage.getItem(SKEY)||'[]');if(!Array.isArray(SLIP))SLIP=[];}catch(e){SLIP=[];}
+  function slipSave(){try{localStorage.setItem(SKEY,JSON.stringify(SLIP))}catch(e){}}
+  function inSlip(k){var id=betId(k);return !!id&&SLIP.some(function(l){return l.lk===k&&l.id===id})}
+  function slipBtn(k){var on=inSlip(k);return '<button type="button" class="slp'+(on?' on':'')+'" data-slip="'+esc(k)+'">'+(on?'In slip \u2713':'Add to slip')+'</button>'}
+  function slipToggle(k){
+    if(inSlip(k)){SLIP=SLIP.filter(function(l){return l.lk!==k});}
+    else{var b=makeBet(k); if(!b)return; SLIP=SLIP.filter(function(l){return l.lk!==k}); SLIP.push({lk:k,id:b.id,sp:b.sp,od:b.od,p:b.p,lab:b.lab,gl:b.gl,gk:b.gk||null,ty:b.ty});}
+    slipSave(); render();
+  }
+  function slipPct(x){return x<0.01?'under 1%':Math.round(x*100)+'%'}
+  function slipSums(){
+    var od=1,p=1; SLIP.forEach(function(l){od*=l.od;p*=l.p});
+    var seen={},linked=false; SLIP.forEach(function(l){if(l.gk){var k=l.sp+'|'+l.gk;if(seen[k])linked=true;seen[k]=1}});
+    return{od:od,p:p,be:1/Math.max(p,1e-9),linked:linked,mixed:SLIP.some(function(l){return l.sp!==SLIP[0].sp}),outright:SLIP.some(function(l){return l.ty==='outright'})};
+  }
+  function slipSumHTML(){
+    var s=slipSums(), n=SLIP.length, book=parseFloat(S.slipBook)||0, use=book>1?book:s.od, ev=s.p*use-1, v=verdict(ev);
+    var h='<div class="tiles"><div class="tile"><b>'+(s.od>=100?Math.round(s.od):s.od.toFixed(2))+'</b><span>combined odds (multiplied)</span></div><div class="tile"><b>'+slipPct(s.p)+'</b><span>chance all '+n+' win</span></div><div class="tile '+(ev>0?'good':'bad')+'"><b>'+(ev>0?'+':'\u2212')+Math.abs(Math.round(ev*100))+'%</b><span>edge at '+(book>1?'your price':'these odds')+'</span></div></div>';
+    h+='<div class="verdict '+v.c+'"><strong>'+v.w+'.</strong> '+(s.p>=0.005?'About 1 in '+Math.max(1,Math.round(1/s.p))+' tickets like this would win. ':'Very unlikely to win. ')+'You need the combined odds to be above '+s.be.toFixed(2)+' to break even.</div>';
+    if(s.linked)h+='<div class="notice">Two or more bets here are from the same game, so they are linked (for example a player\'s points and which team wins). The chance above treats them as independent, which is usually wrong, and bookmakers often price or refuse such combinations differently.</div>';
+    if(s.mixed)h+='<div class="meta">Bets from different sports are combined; the page treats them as independent.</div>';
+    if(s.outright)h+='<div class="meta">An outright bet in the slip is decided at the end of the season.</div>';
+    return h;
+  }
+  function slipHTML(){
+    var h='<div><button type="button" class="chip" data-back2="1">\u2190 Back</button></div>';
+    if(!SLIP.length)return h+'<div class="empty"><strong>Your slip is empty</strong>Type odds on any bet, then tap Add to slip to see what the combined bet is worth.</div>';
+    h+='<article class="card"><div class="head"><div class="who"><div class="name">Bet slip</div><div class="meta">'+SLIP.length+' bet'+(SLIP.length>1?'s':'')+' \u00b7 every bet must win</div></div><button type="button" class="trk" data-slipclear="1">Clear</button></div>'+
+      SLIP.map(function(l,i){return '<div class="brow"><div><div class="name" style="font-size:15px">'+esc(l.lab)+'</div><div class="meta">'+esc(l.gl||'')+'</div></div><div class="bres neutral">'+l.od.toFixed(2)+'<div class="meta">'+slipPct(l.p)+' chance</div></div><button type="button" class="del" data-slipdel="'+i+'">Remove</button></div>'}).join('')+
+      '</article>';
+    h+='<article class="card" id="slipsum"><div class="mk-title">Combined bet</div><div id="slipcalc">'+slipSumHTML()+'</div>'+
+      '<label class="field"><span>Your bookmaker\'s price for the combined bet (optional)</span><input id="slipbook" data-field="slipbook" type="number" inputmode="decimal" step="0.01" min="1" placeholder="e.g. 7.20" value="'+(S.slipBook||'')+'"></label>'+
+      '<div class="meta">Bookmakers often pay less than the odds multiplied together. Type their price to see the real edge.</div></article>';
+    return h;
+  }
+  function slipBar(){
+    var b=$('#slipbar'); if(!b)return;
+    var show=SLIP.length>0&&S.view!=='slip';
+    b.hidden=!show; document.body.classList.toggle('hasslip',show);
+    if(show){var s=slipSums();b.innerHTML='<button type="button" id="slipopen"><span><b>Slip \u00b7 '+SLIP.length+'</b></span><span>odds '+(s.od>=100?Math.round(s.od):s.od.toFixed(2))+' \u00b7 '+slipPct(s.p)+' chance</span><span class="go">Open \u203a</span></button>';}
   }
   function makeBet(k){
     var st=stateFor(k); if(!st)return null;
@@ -889,7 +955,50 @@ h3{margin:14px 0 0}
   function fin(b,out,note){return{s:out,note:note,profit:out==='won'?b.od-1:(out==='lost'?-1:0)}}
   function units(x){return (x>=0?'+':'\u2212')+Math.abs(x).toFixed(2)}
   var BUCKETS=[[0,.3,'under 30%'],[.3,.45,'30\u201345%'],[.45,.6,'45\u201360%'],[.6,.75,'60\u201375%'],[.75,1.01,'75%+']];
+    /* ---------- Model record: frozen predictions marked against real results (scorecard.json) + the walk-forward test headlines ---------- */
+  var SC=null, SCSTATE='idle';
+  function loadScorecard(){
+    if(SCSTATE!=='idle')return; SCSTATE='loading';
+    fetch('scorecard.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()}).then(function(d){SC=d;SCSTATE='done';if(S.view==='record')render();}).catch(function(){SCSTATE='failed';if(S.view==='record')render();});
+  }
+  function pc0(x){return Math.round(x*100)+'%'}
+  function calTable(rows,head){
+    return '<div class="ctab"><span class="h">'+head+'</span><span class="h">Count</span><span class="h">Model said</span><span class="h">Happened</span>'+rows.map(function(r){return '<span>'+esc(r.band)+'</span><span>'+r.n+'</span><span>'+pc0(r.said)+'</span><span>'+pc0(r.happened)+'</span>'}).join('')+'</div>';
+  }
+  function modelRecordHTML(){
+    if(SCSTATE==='failed')return '<div class="empty"><strong>The model record could not be loaded</strong>Reload the page. It is refreshed with the daily update.</div>';
+    if(!SC)return '<div class="empty"><strong>Loading\u2026</strong></div>';
+    var h='<article class="card"><div class="name">How good is the model?</div><p class="hint" style="margin:0">Two kinds of evidence. <strong>Tested on past games</strong> the model had not seen (done once, when it was built). <strong>Live record</strong>: every prediction is saved before the game starts and marked against the real result afterwards, so it cannot be adjusted after the fact. '+(SC.since?'Saving began '+esc(new Date(SC.since+'T12:00:00').toLocaleDateString([],{day:'numeric',month:'short'}))+'.':'')+'</p></article>';
+    Object.keys(SC.sports).forEach(function(k){
+      var s=SC.sports[k], c='<article class="card"><div class="name">'+esc(s.name)+'</div>';
+      c+='<div class="mk-title">Tested on past games</div><ul class="tested">'+s.tested.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>';
+      c+='<div class="mk-title">Live record</div>';
+      if(!s.settled){c+='<p class="hint" style="margin:0">'+(s.logged?s.logged+' game'+(s.logged>1?'s':'')+' saved so far; none finished yet. Results appear here after each daily update.':'Nothing saved yet.')+'</p>';}
+      else{
+        var g=s.games;
+        if(g){
+          c+='<p style="margin:0"><strong>'+g.n+' finished game'+(g.n>1?'s':'')+'.</strong> The model picked the winner '+pc0(g.winner_right)+' of the time. Error score '+g.brier.toFixed(3)+' (a coin flip scores 0.250; lower is better).'+(g.logloss3?' Win/draw/loss score '+g.logloss3.toFixed(2)+' (guessing scores '+g.logloss3_guess.toFixed(2)+').':'')+'</p>';
+          if(g.bins.length)c+=calTable(g.bins,'Home win chance');
+          if(g.n<30)c+='<div class="meta">Fewer than 30 games: this is mostly luck so far.</div>';
+        }
+        if(s.totals)c+='<p style="margin:0">Total '+(k==='tennis'?'games':k==='football'?'goals':'points')+': the model expected '+s.totals.expected_avg+' on average; the real average was '+(s.totals.expected_avg+s.totals.miss).toFixed(1)+'. At its own middle line it said "over" '+pc0(s.totals.said_over)+' of the time; it happened '+pc0(s.totals.happened_over)+'.</p>';
+        if(s.props){
+          c+='<p style="margin:0"><strong>'+s.props.n+' player predictions.</strong> At the line nearest the model\'s own number it said "over" '+pc0(s.props.said_over)+' of the time; it happened '+pc0(s.props.happened_over)+'.</p>';
+          if(s.props.bins.length)c+=calTable(s.props.bins,'Over chance');
+          if(s.props.stats.length)c+='<div class="ctab" style="grid-template-columns:1.2fr .5fr .8fr .8fr"><span class="h">Stat</span><span class="h">Count</span><span class="h">Expected avg</span><span class="h">Actual avg</span>'+s.props.stats.map(function(x){return '<span>'+esc(x.stat)+'</span><span>'+x.n+'</span><span>'+x.expected+'</span><span>'+x.actual+'</span>'}).join('')+'</div>';
+        }
+      }
+      h+=c+'</article>';
+    });
+    h+='<p class="hint">Players who did not play are left out. Chances are marked at the model\'s own middle line, not at lines a bookmaker would offer. The model has not been compared with real bookmaker prices except where stated above.</p>';
+    return h;
+  }
+  function recTabs(){return '<div class="seg" role="group" aria-label="Record view"><button data-rtab="mine" aria-pressed="'+(S.rtab!=='model')+'">My bets</button><button data-rtab="model" aria-pressed="'+(S.rtab==='model')+'">Model record</button></div>'}
   function recordHTML(){
+    if(S.rtab==='model'){loadScorecard();return recTabs()+modelRecordHTML();}
+    return recTabs()+recordMine();
+  }
+  function recordMine(){
     var items=LEDGER.slice().sort(function(a,b){return b.t-a.t}).map(function(b){return{b:b,r:settle(b)}});
     var done=items.filter(function(x){return x.r.s==='won'||x.r.s==='lost'||x.r.s==='push'}), voids=items.filter(function(x){return x.r.s==='void'}).length;
     var won=done.filter(function(x){return x.r.s==='won'}).length, lost=done.filter(function(x){return x.r.s==='lost'}).length, push=done.length-won-lost;
@@ -947,17 +1056,18 @@ h3{margin:14px 0 0}
       keep={key:act.closest('[data-key]').dataset.key,field:act.dataset.field,pos:act.selectionStart};
     }
     var sp=SPORTS[S.sport];
-    var rec=(S.view==='record'), lvw=(S.view==='live'); $('#recbtn').setAttribute('aria-pressed',String(rec)); $('#livebtn').setAttribute('aria-pressed',String(lvw)); 
+    var rec=(S.view==='record'), lvw=(S.view==='live'), slv=(S.view==='slip'); slipBar(); $('#recbtn').setAttribute('aria-pressed',String(rec)); $('#livebtn').setAttribute('aria-pressed',String(lvw)); 
     if(sp.tabs.indexOf(S.tab)<0)S.tab=sp.tabs.indexOf('probable')>=0?'probable':sp.tabs[0];
     $('#sports').innerHTML=Object.keys(SPORTS).map(function(k){return '<button class="sport" data-sport="'+k+'" aria-pressed="'+(k===S.sport)+'">'+SPORTS[k].label+'</button>'}).join('');
-    $('#tabs').innerHTML=sp.tabs.map(function(tb){var sel=(tb===S.tab&&!rec&&!lvw);return '<button class="tab" role="tab" data-tab="'+tb+'" aria-selected="'+sel+'"><span class="ico">'+ICON[tb]+'</span><span class="lab">'+((sp.names&&sp.names[tb])||DOCKNAME[tb])+'</span>'+(tb==='best'?'<span class="n" id="n-best">0</span>':'')+'</button>'}).join('');
+    $('#tabs').innerHTML=sp.tabs.map(function(tb){var sel=(tb===S.tab&&!rec&&!lvw&&!slv);return '<button class="tab" role="tab" data-tab="'+tb+'" aria-selected="'+sel+'"><span class="ico">'+ICON[tb]+'</span><span class="lab">'+((sp.names&&sp.names[tb])||DOCKNAME[tb])+'</span>'+(tb==='best'?'<span class="n" id="n-best">0</span>':'')+'</button>'}).join('');
     $('#helpbtn').setAttribute('aria-pressed',String(!$('#intro').hidden));
     document.querySelectorAll('#stat-chips .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.stat===S.stat))});
     document.querySelectorAll('#g-side button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.side===S.side))});
     $('#target').disabled=(parseFloat(S.min)||0)>1;
-    var showIntro=!!S.intro&&!rec&&!lvw&&!S.match; $('#intro').hidden=!showIntro; $('#helpbtn').setAttribute('aria-pressed',String(showIntro));
+    var showIntro=!!S.intro&&!rec&&!lvw&&!slv&&!S.match; $('#intro').hidden=!showIntro; $('#helpbtn').setAttribute('aria-pressed',String(showIntro));
     setControls(); counts();
     if(rec){document.querySelector('.controls').hidden=true;$('#list').innerHTML=recordHTML();return;}
+    if(slv){document.querySelector('.controls').hidden=true;$('#hint').textContent='';$('#list').innerHTML=slipHTML();return;}
     if(lvw){document.querySelector('.controls').hidden=true;$('#hint').textContent='';$('#list').innerHTML=liveHTML();return;}
     var html='', list=$('#list'), min=parseFloat(S.min)||0;
     if(S.tab==='matches'){
@@ -1025,6 +1135,13 @@ h3{margin:14px 0 0}
     else if(t.id==='intromore'){S.intro=false;lset(IKEY,'1');render();var ab=$('#about');ab.open=true;ab.scrollIntoView({behavior:'smooth',block:'start'});}
     else if(t.id==='fbtn'){lset(FKEY,lget(FKEY)==='1'?'0':'1');render();}
     else if(t.dataset.track){trackBet(t.dataset.track,t);}
+    else if(t.id==='pinall'){S.view='record';S.rtab='mine';render();window.scrollTo(0,0);}
+    else if(t.dataset.slip){slipToggle(t.dataset.slip);}
+    else if(t.dataset.rtab){S.rtab=t.dataset.rtab;render();window.scrollTo(0,0);}
+    else if(t.id==='slipopen'){S.view='slip';S.intro=false;render();window.scrollTo(0,0);}
+    else if(t.dataset.back2){S.view=null;render();window.scrollTo(0,0);}
+    else if(t.dataset.slipdel){SLIP.splice(parseInt(t.dataset.slipdel,10),1);slipSave();render();}
+    else if(t.dataset.slipclear){SLIP=[];slipSave();S.slipBook='';S.view=null;render();}
     else if(t.dataset.del){LEDGER=LEDGER.filter(function(b){return b.id!==t.dataset.del});ledgerSave();render();}
     else if(t.dataset.sport){S.view=null;if(t.dataset.sport===S.sport)render();else switchSport(t.dataset.sport);}
     else if(t.dataset.tab){S.tab=t.dataset.tab;S.match=null;S.lm=null;S.shown=PAGE;save();render();window.scrollTo(0,0);}
@@ -1050,6 +1167,7 @@ h3{margin:14px 0 0}
   $('#list').addEventListener('input',function(ev){
     var inp=ev.target; if(!inp.dataset||!inp.dataset.field)return;
     var f=inp.dataset.field, v=num(inp.value);
+    if(f==='slipbook'){S.slipBook=inp.value;var sc=$('#slipcalc');if(sc)sc.innerHTML=slipSumHTML();return;}
     if(f==='line'||f==='odds'||f==='odds2'){            // player props
       var host=inp.closest('[data-key]'), sk=host.dataset.key, r=cur.ROWMAP[host.dataset.base];
       var typ=host.classList.contains('srow');

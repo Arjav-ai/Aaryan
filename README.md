@@ -169,3 +169,9 @@ Every prop row has three boxes: Line offered, Over odds, Under odds. Type what t
 - Best-of-5 (men at majors) is flagged from the tournament, so qualifying matches at majors are treated as best-of-5 by mistake.
 - Not covered: surface, injuries/withdrawals, fatigue, live tennis scores, props. No bookmaker prices to compare with. It is off-season right now, so few matches are listed.
 - Tests: `tests/e2e/tennis.test.js` (includes settling a tracked bet and voiding a retirement).
+
+## Bet slip, model record, first screen
+
+- **Bet slip:** every bet with odds typed has an *Add to slip* button next to *Track bet*. The slip multiplies odds and chances, shows the edge, accepts the bookmaker's own price for the combined bet, and warns when two bets are from the same game (linked, so the product is wrong) or from different sports. Saved on the device only. Test: `tests/e2e/slip.test.js`.
+- **Model record** (My bets -> Model record): `predlog.py` saves what the models predicted before each game (`data/prediction_log.json`, frozen at kick-off); `scorecard.py` marks those against real results (`data/scorecard.json`: winner rate, error score vs a coin flip, calibration tables, totals, props by stat) next to the walk-forward test headlines. `tests/scorecard_check.py` verifies the arithmetic independently; `tests/e2e/modelrecord.test.js` the screen. It starts empty and fills as games finish.
+- **First screen:** new visitors open on Games (returning visitors keep their last tab); open bets are pinned above the games.
